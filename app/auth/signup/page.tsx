@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Checkbox } from '@/components/ui/checkbox'
-import { BookOpen, Eye, EyeOff, Shield, Heart, CheckCircle, XCircle, ArrowLeft, Home } from 'lucide-react'
+import { BookOpen, Eye, EyeOff, Shield, Heart, CheckCircle, XCircle } from 'lucide-react'
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 import { useRouter } from 'next/navigation'
 
@@ -186,7 +186,7 @@ export default function SignUpPage() {
   return (
     <div className="min-h-screen flex items-center justify-center p-4">
       <div className="w-full max-w-md">
-        {/* Header with Back to Home */}
+        {/* Minimal Header */}
         <div className="text-center mb-8">
           <Link href="/" className="inline-flex items-center space-x-2 mb-6 group">
             <div className="bg-gradient-to-r from-purple-500 to-pink-500 p-2 rounded-xl group-hover:scale-105 transition-transform duration-200">
@@ -196,14 +196,6 @@ export default function SignUpPage() {
               Narratica
             </span>
           </Link>
-          
-          {/* Back to Home Link */}
-          <div className="mb-4">
-            <Link href="/" className="inline-flex items-center text-sm text-gray-600 hover:text-purple-600 transition-colors">
-              <ArrowLeft className="h-4 w-4 mr-1" />
-              Back to Home
-            </Link>
-          </div>
           
           <h1 className="text-2xl font-bold text-gray-900 mb-2">Create Your Account</h1>
           <p className="text-gray-600">Join thousands of families creating magical stories</p>
@@ -465,14 +457,6 @@ export default function SignUpPage() {
               <span>Child-Safe Platform</span>
             </div>
           </div>
-        </div>
-
-        {/* Additional Navigation */}
-        <div className="text-center mt-8">
-          <Link href="/" className="inline-flex items-center text-sm text-gray-500 hover:text-purple-600 transition-colors">
-            <Home className="h-4 w-4 mr-1" />
-            Return to Narratica Home
-          </Link>
         </div>
       </div>
     </div>
