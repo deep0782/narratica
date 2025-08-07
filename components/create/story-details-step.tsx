@@ -144,14 +144,16 @@ export function StoryDetailsStep({ formData, onUpdate }: StoryDetailsStepProps) 
           <div>
             <Label>Where would you like the story to take place?</Label>
             <Select 
-              value={formData.setting_preference || ''} 
-              onValueChange={(value) => onUpdate({ setting_preference: value || undefined })}
+              value={formData.setting_preference || 'ai-choice'} 
+              onValueChange={(value) => onUpdate({ 
+                setting_preference: value === 'ai-choice' ? undefined : value 
+              })}
             >
               <SelectTrigger className="mt-2">
                 <SelectValue placeholder="Let AI choose the perfect setting" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Let AI choose the perfect setting</SelectItem>
+                <SelectItem value="ai-choice">Let AI choose the perfect setting</SelectItem>
                 {SETTING_OPTIONS.map((setting) => (
                   <SelectItem key={setting} value={setting}>
                     {setting}

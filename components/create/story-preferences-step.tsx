@@ -39,6 +39,19 @@ const STORY_LENGTHS = [
   { value: 'long', label: 'Long Story', pages: '14-20 pages', time: '15-25 min read', icon: GraduationCap }
 ]
 
+const SETTING_OPTIONS = [
+  'Enchanted Forest',
+  'Pirate Ship Adventure',
+  'Magical Underwater Kingdom',
+  'Futuristic City',
+  'Safari Adventure',
+  'Space Exploration Mission',
+  'Haunted Mansion',
+  'Jungle Adventure',
+  'Arctic Expedition',
+  'Ancient Egyptian Pyramid'
+]
+
 export function StoryPreferencesStep({ formData, onUpdate }: StoryPreferencesStepProps) {
   return (
     <div className="space-y-8">
@@ -188,6 +201,36 @@ export function StoryPreferencesStep({ formData, onUpdate }: StoryPreferencesSte
         </CardContent>
       </Card>
 
+      {/* Setting Preference */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center space-x-2">
+            <Palette className="h-5 w-5 text-sky-500" />
+            <span>Setting Preference</span>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Select 
+            value={formData.setting_preference || 'ai-choice'} 
+            onValueChange={(value) => onUpdate({ 
+              setting_preference: value === 'ai-choice' ? undefined : value 
+            })}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Select a setting" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="ai-choice">Let AI choose the perfect setting</SelectItem>
+              {SETTING_OPTIONS.map((setting) => (
+                <SelectItem key={setting} value={setting}>
+                  {setting}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </CardContent>
+      </Card>
+
       {/* Selection Summary */}
       {(formData.educational_theme || formData.art_style) && (
         <Card className="bg-blue-50 border-blue-200">
@@ -214,6 +257,11 @@ export function StoryPreferencesStep({ formData, onUpdate }: StoryPreferencesSte
               {formData.story_length && (
                 <Badge variant="secondary">
                   {STORY_LENGTHS.find(l => l.value === formData.story_length)?.label}
+                </Badge>
+              )}
+              {formData.setting_preference && (
+                <Badge variant="secondary">
+                  {formData.setting_preference}
                 </Badge>
               )}
             </div>
