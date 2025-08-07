@@ -2,9 +2,9 @@
 
 import { useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Palette, Star, Eye } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Star, Palette, Sparkles } from 'lucide-react'
 
 interface ArtStyleSelectionStepProps {
   selectedStyle: string
@@ -16,246 +16,236 @@ const ART_STYLES = [
   {
     id: 'disney-style',
     name: 'Disney Style',
-    description: 'Classic animated movie style with vibrant colors and expressive characters',
-    preview: '/placeholder.svg?height=200&width=300&text=Disney+Style',
+    description: 'Classic Disney animation with expressive characters and magical worlds',
+    features: ['Expressive characters', 'Magical atmosphere', 'Vibrant colors'],
     popular: true,
-    features: ['Vibrant colors', 'Expressive faces', 'Classic animation feel']
+    preview: '/placeholder_image.png'
   },
   {
     id: 'pixar-style',
-    name: 'Pixar 3D',
-    description: 'Modern 3D animation style with detailed textures and lighting',
-    preview: '/placeholder.svg?height=200&width=300&text=Pixar+3D',
+    name: 'Pixar Style',
+    description: '3D animated style with detailed textures and realistic lighting',
+    features: ['3D animation', 'Detailed textures', 'Realistic lighting'],
     popular: true,
-    features: ['3D rendered', 'Realistic lighting', 'Detailed textures']
+    preview: '/placeholder_image.png'
   },
   {
     id: 'watercolor',
     name: 'Watercolor',
-    description: 'Soft, dreamy watercolor illustrations with gentle brush strokes',
-    preview: '/placeholder.svg?height=200&width=300&text=Watercolor',
+    description: 'Soft, dreamy watercolor paintings with gentle brush strokes',
+    features: ['Soft textures', 'Dreamy atmosphere', 'Artistic feel'],
     popular: false,
-    features: ['Soft edges', 'Dreamy atmosphere', 'Artistic brush strokes']
+    preview: '/placeholder_image.png'
   },
   {
     id: 'cartoon',
     name: 'Cartoon',
-    description: 'Fun, colorful cartoon illustrations with bold outlines',
-    preview: '/placeholder.svg?height=200&width=300&text=Cartoon',
+    description: 'Fun, colorful cartoon style perfect for young children',
+    features: ['Bold colors', 'Simple shapes', 'Child-friendly'],
     popular: true,
-    features: ['Bold outlines', 'Bright colors', 'Playful style']
+    preview: '/placeholder_image.png'
   },
   {
     id: 'storybook',
     name: 'Classic Storybook',
-    description: 'Traditional children\'s book illustrations with timeless charm',
-    preview: '/placeholder.svg?height=200&width=300&text=Storybook',
+    description: 'Traditional storybook illustrations with detailed line art',
+    features: ['Detailed illustrations', 'Classic feel', 'Timeless style'],
     popular: false,
-    features: ['Timeless style', 'Detailed illustrations', 'Classic charm']
+    preview: '/placeholder_image.png'
   },
   {
     id: 'manga',
     name: 'Manga Style',
-    description: 'Age-appropriate Japanese comic book style with expressive characters',
-    preview: '/placeholder.svg?height=200&width=300&text=Manga+Style',
+    description: 'Japanese manga-inspired art with expressive characters',
+    features: ['Expressive eyes', 'Dynamic poses', 'Unique style'],
     popular: false,
-    features: ['Expressive eyes', 'Dynamic poses', 'Japanese art style']
+    preview: '/placeholder_image.png'
   },
   {
-    id: 'paper-craft',
-    name: 'Paper Craft',
-    description: 'Charming paper craft style with layered textures and shadows',
-    preview: '/placeholder.svg?height=200&width=300&text=Paper+Craft',
+    id: 'minimalist',
+    name: 'Minimalist',
+    description: 'Clean, simple illustrations focusing on essential elements',
+    features: ['Clean design', 'Simple shapes', 'Focus on story'],
     popular: false,
-    features: ['Layered textures', 'Craft aesthetic', 'Unique shadows']
+    preview: '/placeholder_image.png'
   },
   {
-    id: 'hand-drawn',
-    name: 'Hand-drawn Sketch',
-    description: 'Artistic hand-drawn sketches with pencil and ink details',
-    preview: '/placeholder.svg?height=200&width=300&text=Hand+Drawn',
+    id: 'fantasy',
+    name: 'Fantasy Art',
+    description: 'Detailed fantasy illustrations with magical creatures and worlds',
+    features: ['Magical elements', 'Detailed worlds', 'Fantasy creatures'],
     popular: false,
-    features: ['Pencil textures', 'Artistic lines', 'Sketch aesthetic']
+    preview: '/placeholder_image.png'
   }
 ]
 
 export function ArtStyleSelectionStep({ selectedStyle, onStyleSelect, childName }: ArtStyleSelectionStepProps) {
-  const [previewStyle, setPreviewStyle] = useState<string | null>(null)
+  const [hoveredStyle, setHoveredStyle] = useState<string | null>(null)
 
   const popularStyles = ART_STYLES.filter(style => style.popular)
   const otherStyles = ART_STYLES.filter(style => !style.popular)
 
   return (
     <div className="space-y-8">
-      <div className="text-center mb-8">
-        <h3 className="text-3xl font-bold text-gray-900 mb-2">
-          🎨 Choose Your Art Style 🎨
+      {/* Header */}
+      <div className="text-center">
+        <h3 className="text-2xl font-bold text-gray-900 mb-2">
+          Choose the perfect art style for {childName}'s story
         </h3>
-        <p className="text-lg text-gray-600">
-          Pick the perfect visual style for {childName}'s adventure
+        <p className="text-gray-600">
+          Select the visual style that will bring your story to life
         </p>
       </div>
 
-      {/* Most Popular Styles */}
-      <div className="space-y-4">
-        <div className="flex items-center space-x-2">
+      {/* Most Popular Section */}
+      <div>
+        <div className="flex items-center space-x-2 mb-6">
           <Star className="h-5 w-5 text-yellow-500" />
           <h4 className="text-xl font-semibold text-gray-900">Most Popular</h4>
+          <Badge variant="secondary" className="bg-yellow-100 text-yellow-800">
+            Recommended
+          </Badge>
         </div>
+
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
           {popularStyles.map((style) => (
             <Card
               key={style.id}
-              className={`cursor-pointer transition-all duration-300 hover:shadow-xl ${
+              className={`cursor-pointer transition-all duration-300 hover:shadow-lg ${
                 selectedStyle === style.id
-                  ? 'ring-2 ring-purple-500 bg-purple-50 shadow-lg'
-                  : 'hover:shadow-lg hover:bg-gray-50'
+                  ? 'ring-2 ring-purple-500 shadow-lg'
+                  : 'hover:shadow-md'
               }`}
               onClick={() => onStyleSelect(style.id)}
+              onMouseEnter={() => setHoveredStyle(style.id)}
+              onMouseLeave={() => setHoveredStyle(null)}
             >
-              <CardHeader className="pb-2">
-                <div className="relative">
+              <div className="relative">
+                <div className="aspect-video bg-gradient-to-br from-purple-100 to-pink-100 rounded-t-lg flex items-center justify-center overflow-hidden">
                   <img
                     src={style.preview || "/placeholder.svg"}
                     alt={`${style.name} preview`}
-                    className="w-full h-48 object-cover rounded-lg"
+                    className="w-full h-full object-cover"
                   />
-                  {style.popular && (
-                    <Badge className="absolute top-2 right-2 bg-yellow-500 text-white">
-                      <Star className="h-3 w-3 mr-1" />
-                      Popular
-                    </Badge>
-                  )}
                   {selectedStyle === style.id && (
-                    <div className="absolute inset-0 bg-purple-500 bg-opacity-20 rounded-lg flex items-center justify-center">
-                      <div className="bg-purple-500 text-white p-2 rounded-full">
-                        <Eye className="h-6 w-6" />
+                    <div className="absolute inset-0 bg-purple-500 bg-opacity-20 flex items-center justify-center">
+                      <div className="bg-white rounded-full p-2">
+                        <Sparkles className="h-6 w-6 text-purple-600" />
                       </div>
                     </div>
                   )}
                 </div>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div>
-                  <CardTitle className="text-lg">{style.name}</CardTitle>
-                  <p className="text-sm text-gray-600 mt-1">{style.description}</p>
+                {style.popular && (
+                  <Badge className="absolute top-2 right-2 bg-yellow-500 text-white">
+                    <Star className="h-3 w-3 mr-1" />
+                    Popular
+                  </Badge>
+                )}
+              </div>
+              
+              <CardContent className="p-4">
+                <h5 className="font-semibold text-lg mb-2">{style.name}</h5>
+                <p className="text-gray-600 text-sm mb-3">{style.description}</p>
+                
+                <div className="space-y-2">
+                  <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Features:</p>
+                  <div className="flex flex-wrap gap-1">
+                    {style.features.map((feature) => (
+                      <Badge key={feature} variant="outline" className="text-xs">
+                        {feature}
+                      </Badge>
+                    ))}
+                  </div>
                 </div>
-                <div className="flex flex-wrap gap-1">
-                  {style.features.map((feature) => (
-                    <Badge key={feature} variant="outline" className="text-xs">
-                      {feature}
-                    </Badge>
-                  ))}
-                </div>
-                <Button
-                  variant={selectedStyle === style.id ? "default" : "outline"}
-                  className="w-full"
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    onStyleSelect(style.id)
-                  }}
-                >
-                  {selectedStyle === style.id ? 'Selected' : 'Choose This Style'}
-                </Button>
               </CardContent>
             </Card>
           ))}
         </div>
       </div>
 
-      {/* Other Styles */}
-      <div className="space-y-4">
-        <div className="flex items-center space-x-2">
+      {/* Other Styles Section */}
+      <div>
+        <div className="flex items-center space-x-2 mb-6">
           <Palette className="h-5 w-5 text-purple-500" />
           <h4 className="text-xl font-semibold text-gray-900">More Art Styles</h4>
         </div>
+
         <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
           {otherStyles.map((style) => (
             <Card
               key={style.id}
-              className={`cursor-pointer transition-all duration-300 hover:shadow-lg ${
+              className={`cursor-pointer transition-all duration-300 hover:shadow-md ${
                 selectedStyle === style.id
-                  ? 'ring-2 ring-purple-500 bg-purple-50'
-                  : 'hover:bg-gray-50'
+                  ? 'ring-2 ring-purple-500 shadow-lg'
+                  : ''
               }`}
               onClick={() => onStyleSelect(style.id)}
             >
-              <CardHeader className="pb-2">
-                <div className="relative">
+              <div className="relative">
+                <div className="aspect-square bg-gradient-to-br from-gray-100 to-gray-200 rounded-t-lg flex items-center justify-center overflow-hidden">
                   <img
                     src={style.preview || "/placeholder.svg"}
                     alt={`${style.name} preview`}
-                    className="w-full h-32 object-cover rounded-lg"
+                    className="w-full h-full object-cover"
                   />
                   {selectedStyle === style.id && (
-                    <div className="absolute inset-0 bg-purple-500 bg-opacity-20 rounded-lg flex items-center justify-center">
-                      <div className="bg-purple-500 text-white p-1 rounded-full">
-                        <Eye className="h-4 w-4" />
+                    <div className="absolute inset-0 bg-purple-500 bg-opacity-20 flex items-center justify-center">
+                      <div className="bg-white rounded-full p-1">
+                        <Sparkles className="h-4 w-4 text-purple-600" />
                       </div>
                     </div>
                   )}
                 </div>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                <CardTitle className="text-base">{style.name}</CardTitle>
-                <p className="text-xs text-gray-600">{style.description}</p>
-                <Button
-                  variant={selectedStyle === style.id ? "default" : "outline"}
-                  size="sm"
-                  className="w-full"
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    onStyleSelect(style.id)
-                  }}
-                >
-                  {selectedStyle === style.id ? 'Selected' : 'Choose'}
-                </Button>
+              </div>
+              
+              <CardContent className="p-3">
+                <h5 className="font-semibold text-sm mb-1">{style.name}</h5>
+                <p className="text-gray-600 text-xs mb-2">{style.description}</p>
+                
+                <div className="flex flex-wrap gap-1">
+                  {style.features.slice(0, 2).map((feature) => (
+                    <Badge key={feature} variant="outline" className="text-xs">
+                      {feature}
+                    </Badge>
+                  ))}
+                  {style.features.length > 2 && (
+                    <Badge variant="outline" className="text-xs">
+                      +{style.features.length - 2} more
+                    </Badge>
+                  )}
+                </div>
               </CardContent>
             </Card>
           ))}
         </div>
       </div>
 
-      {/* Style Preview with Child Character */}
+      {/* Preview Section */}
       {selectedStyle && (
         <Card className="bg-gradient-to-r from-purple-50 to-pink-50 border-purple-200">
           <CardHeader>
             <CardTitle className="flex items-center space-x-2 text-purple-900">
-              <Eye className="h-6 w-6" />
-              <span>Preview: {childName} in {ART_STYLES.find(s => s.id === selectedStyle)?.name}</span>
+              <Sparkles className="h-5 w-5" />
+              <span>Style Preview</span>
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="flex items-center justify-center p-8 bg-white rounded-lg border">
-              <img
-                src={`/placeholder_image.png?height=300&width=400&text=${childName}+in+${selectedStyle}`}
-                alt={`${childName} in ${selectedStyle} style`}
-                className="max-w-full h-auto rounded-lg shadow-lg"
-              />
-            </div>
-            <p className="text-center text-purple-700 mt-4">
-              This is how {childName} will appear in your story!
-            </p>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Selection Summary */}
-      {selectedStyle && (
-        <Card className="bg-blue-50 border-blue-200">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-4">
+              <div className="w-16 h-16 bg-white rounded-lg border-2 border-purple-200 flex items-center justify-center">
+                <img
+                  src={ART_STYLES.find(s => s.id === selectedStyle)?.preview || "/placeholder.svg"}
+                  alt="Selected style"
+                  className="w-full h-full object-cover rounded-md"
+                />
+              </div>
               <div>
-                <p className="font-medium text-blue-900">
-                  Selected Style: {ART_STYLES.find(s => s.id === selectedStyle)?.name}
+                <p className="font-medium text-purple-900">
+                  {ART_STYLES.find(s => s.id === selectedStyle)?.name}
                 </p>
-                <p className="text-sm text-blue-700">
-                  {ART_STYLES.find(s => s.id === selectedStyle)?.description}
+                <p className="text-sm text-purple-700">
+                  Perfect choice! This style will make {childName}'s story truly magical.
                 </p>
               </div>
-              <Badge variant="secondary" className="bg-blue-100 text-blue-800">
-                Ready for Characters!
-              </Badge>
             </div>
           </CardContent>
         </Card>

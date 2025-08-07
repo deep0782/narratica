@@ -4,11 +4,10 @@ import { useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Badge } from '@/components/ui/badge'
-import { Alert, AlertDescription } from '@/components/ui/alert'
-import { Users, Plus, Edit3, Save, X, RefreshCw, Sparkles, User } from 'lucide-react'
+import { Label } from '@/components/ui/label'
+import { Users, Plus, Edit3, Trash2, Wand2, RefreshCw, User, Sparkles, Heart } from 'lucide-react'
 import { extractCharacters } from '@/lib/ai-services'
 import type { Character } from '@/app/create/page'
 
@@ -19,12 +18,12 @@ interface CharacterManagementStepProps {
 }
 
 const CHARACTER_TRAITS = [
-  'brave', 'kind', 'curious', 'funny', 'smart', 'helpful', 'creative', 'adventurous',
-  'caring', 'energetic', 'thoughtful', 'determined', 'gentle', 'playful', 'wise', 'loyal'
+  'brave', 'kind', 'funny', 'smart', 'creative', 'helpful', 'curious', 'adventurous',
+  'gentle', 'loyal', 'cheerful', 'wise', 'magical', 'strong', 'caring', 'playful'
 ]
 
 const HAIR_COLORS = ['brown', 'blonde', 'black', 'red', 'gray', 'white', 'colorful']
-const CLOTHING_STYLES = ['casual', 'formal', 'adventure gear', 'magical robes', 'superhero costume', 'princess dress', 'knight armor']
+const CLOTHING_OPTIONS = ['casual', 'formal', 'magical robes', 'adventure gear', 'royal attire', 'simple clothes']
 
 export function CharacterManagementStep({ 
   characters, 
@@ -40,35 +39,35 @@ export function CharacterManagementStep({
     relationships: [],
     appearance: {}
   })
-  const [showAddForm, setShowAddForm] = useState(false)
 
-  // Auto-extract characters when component mounts
   useEffect(() => {
-    if (storyDescription && characters.length === 0) {
+    if (characters.length === 0 && storyDescription.length > 50) {
       handleExtractCharacters()
     }
   }, [storyDescription])
 
   const handleExtractCharacters = async () => {
     if (!storyDescription.trim()) return
-
+    
     setIsExtracting(true)
     try {
-      const extractedCharacters = await extractCharacters(storyDescription)
-      const formattedCharacters: Character[] = extractedCharacters.map((char, index) => ({
+      const extractedChars = await extractCharacters(storyDescription)
+      const newCharacters: Character[] = extractedChars.map((char, index) => ({
         id: `char-${Date.now()}-${index}`,
         name: char.name,
         description: char.description,
         traits: char.traits,
         relationships: char.relationships,
+        imageUrl: '/placeholder_image.png',
         appearance: {
           hairColor: HAIR_COLORS[Math.floor(Math.random() * HAIR_COLORS.length)],
-          clothing: CLOTHING_STYLES[Math.floor(Math.random() * CLOTHING_STYLES.length)]
+          clothing: CLOTHING_OPTIONS[Math.floor(Math.random() * CLOTHING_OPTIONS.length)],
+          physicalTraits: []
         }
       }))
-      onCharactersUpdate(formattedCharacters)
+      onCharactersUpdate([...characters, ...newCharacters])
     } catch (error) {
-      console.error('Error extracting characters:', error)
+      console.error('Character extraction failed:', error)
     } finally {
       setIsExtracting(false)
     }
@@ -83,12 +82,18 @@ export function CharacterManagementStep({
       description: newCharacter.description || '',
       traits: newCharacter.traits || [],
       relationships: newCharacter.relationships || [],
+      imageUrl: '/placeholder_image.png',
       appearance: newCharacter.appearance || {}
     }
 
     onCharactersUpdate([...characters, character])
-    setNewCharacter({ name: '', description: '', traits: [], relationships: [], appearance: {} })
-    setShowAddForm(false)
+    setNewCharacter({
+      name: '',
+      description: '',
+      traits: [],
+      relationships: [],
+      appearance: {}
+    })
   }
 
   const handleUpdateCharacter = (id: string, updates: Partial<Character>) => {
@@ -103,366 +108,288 @@ export function CharacterManagementStep({
   }
 
   const handleRegenerateImage = (id: string) => {
-    // Mock image regeneration
-    const character = characters.find(c => c.id === id)
-    if (character) {
-      handleUpdateCharacter(id, {
-        imageUrl: `/placeholder.svg?height=200&width=200&text=${character.name}+v${Date.now()}`
-      })
-    }
+    // In production, this would call an image generation API
+    handleUpdateCharacter(id, { 
+      imageUrl: `/placeholder_image.png?t=${Date.now()}` 
+    })
   }
 
   const toggleTrait = (characterId: string, trait: string) => {
     const character = characters.find(c => c.id === characterId)
     if (!character) return
 
-    const updatedTraits = character.traits.includes(trait)
+    const newTraits = character.traits.includes(trait)
       ? character.traits.filter(t => t !== trait)
       : [...character.traits, trait]
 
-    handleUpdateCharacter(characterId, { traits: updatedTraits })
-  }
-
-  const toggleNewCharacterTrait = (trait: string) => {
-    const currentTraits = newCharacter.traits || []
-    const updatedTraits = currentTraits.includes(trait)
-      ? currentTraits.filter(t => t !== trait)
-      : [...currentTraits, trait]
-
-    setNewCharacter(prev => ({ ...prev, traits: updatedTraits }))
+    handleUpdateCharacter(characterId, { traits: newTraits })
   }
 
   return (
     <div className="space-y-8">
-      <div className="text-center mb-8">
-        <h3 className="text-3xl font-bold text-gray-900 mb-2">
-          👥 Meet Your Story Characters 👥
+      {/* Header */}
+      <div className="text-center">
+        <h3 className="text-2xl font-bold text-gray-900 mb-2">
+          Meet your story characters
         </h3>
-        <p className="text-lg text-gray-600">
-          Let's bring your characters to life with personalities and appearances
+        <p className="text-gray-600">
+          AI has found characters in your story. You can edit them or add new ones!
         </p>
       </div>
 
-      {/* Character Extraction */}
+      {/* Extract Characters Button */}
       {characters.length === 0 && (
-        <Card className="bg-gradient-to-r from-blue-50 to-purple-50 border-blue-200">
-          <CardContent className="p-6 text-center">
-            <Sparkles className="h-12 w-12 text-blue-500 mx-auto mb-4" />
-            <h4 className="text-xl font-semibold text-gray-900 mb-2">
-              Let AI Find Your Characters
-            </h4>
-            <p className="text-gray-600 mb-4">
-              Our AI will analyze your story and automatically identify the main characters
-            </p>
-            <Button
-              onClick={handleExtractCharacters}
-              disabled={isExtracting || !storyDescription.trim()}
-              size="lg"
-              className="bg-blue-500 hover:bg-blue-600"
-            >
-              {isExtracting ? (
-                <>
-                  <RefreshCw className="h-5 w-5 mr-2 animate-spin" />
-                  Finding Characters...
-                </>
-              ) : (
-                <>
-                  <Sparkles className="h-5 w-5 mr-2" />
-                  Extract Characters from Story
-                </>
-              )}
-            </Button>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Character List */}
-      {characters.length > 0 && (
-        <div className="space-y-6">
-          <div className="flex items-center justify-between">
-            <h4 className="text-xl font-semibold text-gray-900 flex items-center space-x-2">
-              <Users className="h-6 w-6 text-purple-500" />
-              <span>Story Characters ({characters.length})</span>
-            </h4>
-            <div className="flex space-x-2">
-              <Button
-                variant="outline"
-                onClick={handleExtractCharacters}
-                disabled={isExtracting}
-                size="sm"
-              >
-                <RefreshCw className="h-4 w-4 mr-2" />
-                Re-extract
-              </Button>
-              <Button
-                onClick={() => setShowAddForm(true)}
-                size="sm"
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                Add Character
-              </Button>
-            </div>
-          </div>
-
-          <div className="grid md:grid-cols-2 gap-6">
-            {characters.map((character) => (
-              <Card key={character.id} className="relative">
-                <CardHeader className="pb-3">
-                  <div className="flex items-start justify-between">
-                    <div className="flex items-center space-x-3">
-                      <div className="bg-purple-100 p-2 rounded-full">
-                        <User className="h-6 w-6 text-purple-600" />
-                      </div>
-                      <div>
-                        <CardTitle className="text-lg">{character.name}</CardTitle>
-                        {character.age && (
-                          <Badge variant="outline" className="mt-1">
-                            Age: {character.age}
-                          </Badge>
-                        )}
-                      </div>
-                    </div>
-                    <div className="flex space-x-1">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setEditingCharacter(
-                          editingCharacter === character.id ? null : character.id
-                        )}
-                      >
-                        <Edit3 className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleDeleteCharacter(character.id)}
-                        className="text-red-500 hover:text-red-700"
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  {/* Character Image */}
-                  <div className="text-center">
-                    <img
-                      src={character.imageUrl || `/placeholder.svg?height=150&width=150&text=${character.name}`}
-                      alt={character.name}
-                      className="w-32 h-32 mx-auto rounded-full object-cover border-4 border-purple-200"
-                    />
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleRegenerateImage(character.id)}
-                      className="mt-2"
-                    >
-                      <RefreshCw className="h-3 w-3 mr-1" />
-                      New Image
-                    </Button>
-                  </div>
-
-                  {editingCharacter === character.id ? (
-                    <div className="space-y-4">
-                      <div>
-                        <Label>Character Name</Label>
-                        <Input
-                          value={character.name}
-                          onChange={(e) => handleUpdateCharacter(character.id, { name: e.target.value })}
-                        />
-                      </div>
-                      <div>
-                        <Label>Description</Label>
-                        <Textarea
-                          value={character.description}
-                          onChange={(e) => handleUpdateCharacter(character.id, { description: e.target.value })}
-                          rows={3}
-                        />
-                      </div>
-                      <div>
-                        <Label>Character Traits</Label>
-                        <div className="grid grid-cols-3 gap-2 mt-2">
-                          {CHARACTER_TRAITS.map((trait) => (
-                            <Button
-                              key={trait}
-                              type="button"
-                              variant={character.traits.includes(trait) ? "default" : "outline"}
-                              size="sm"
-                              onClick={() => toggleTrait(character.id, trait)}
-                              className="text-xs"
-                            >
-                              {trait}
-                            </Button>
-                          ))}
-                        </div>
-                      </div>
-                      <Button
-                        onClick={() => setEditingCharacter(null)}
-                        size="sm"
-                        className="w-full"
-                      >
-                        <Save className="h-4 w-4 mr-2" />
-                        Save Changes
-                      </Button>
-                    </div>
-                  ) : (
-                    <div className="space-y-3">
-                      <div>
-                        <p className="text-sm text-gray-600">{character.description}</p>
-                      </div>
-                      
-                      {character.traits.length > 0 && (
-                        <div>
-                          <Label className="text-sm font-medium">Traits</Label>
-                          <div className="flex flex-wrap gap-1 mt-1">
-                            {character.traits.map((trait) => (
-                              <Badge key={trait} variant="secondary" className="text-xs">
-                                {trait}
-                              </Badge>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-
-                      {character.appearance && (
-                        <div>
-                          <Label className="text-sm font-medium">Appearance</Label>
-                          <div className="flex flex-wrap gap-1 mt-1">
-                            {character.appearance.hairColor && (
-                              <Badge variant="outline" className="text-xs">
-                                {character.appearance.hairColor} hair
-                              </Badge>
-                            )}
-                            {character.appearance.clothing && (
-                              <Badge variant="outline" className="text-xs">
-                                {character.appearance.clothing}
-                              </Badge>
-                            )}
-                          </div>
-                        </div>
-                      )}
-
-                      {character.relationships.length > 0 && (
-                        <div>
-                          <Label className="text-sm font-medium">Relationships</Label>
-                          <div className="flex flex-wrap gap-1 mt-1">
-                            {character.relationships.map((rel) => (
-                              <Badge key={rel} variant="outline" className="text-xs">
-                                {rel}
-                              </Badge>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+        <div className="text-center">
+          <Button
+            onClick={handleExtractCharacters}
+            disabled={isExtracting || !storyDescription.trim()}
+            size="lg"
+            className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
+          >
+            {isExtracting ? (
+              <>
+                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
+                Finding Characters...
+              </>
+            ) : (
+              <>
+                <Wand2 className="h-5 w-5 mr-2" />
+                Find Characters in Story
+              </>
+            )}
+          </Button>
         </div>
       )}
 
-      {/* Add New Character Form */}
-      {showAddForm && (
-        <Card className="border-green-200 bg-green-50">
-          <CardHeader>
-            <CardTitle className="flex items-center space-x-2 text-green-900">
-              <Plus className="h-5 w-5" />
-              <span>Add New Character</span>
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div>
-              <Label>Character Name</Label>
-              <Input
-                value={newCharacter.name || ''}
-                onChange={(e) => setNewCharacter(prev => ({ ...prev, name: e.target.value }))}
-                placeholder="Enter character name..."
-              />
-            </div>
-            
-            <div>
-              <Label>Description</Label>
-              <Textarea
-                value={newCharacter.description || ''}
-                onChange={(e) => setNewCharacter(prev => ({ ...prev, description: e.target.value }))}
-                placeholder="Describe this character..."
-                rows={3}
-              />
-            </div>
-
-            <div>
-              <Label>Character Traits</Label>
-              <div className="grid grid-cols-4 gap-2 mt-2">
-                {CHARACTER_TRAITS.map((trait) => (
+      {/* Characters Grid */}
+      {characters.length > 0 && (
+        <div className="grid md:grid-cols-2 gap-6">
+          {characters.map((character) => (
+            <Card key={character.id} className="overflow-hidden">
+              <div className="relative">
+                <div className="aspect-video bg-gradient-to-br from-purple-100 to-pink-100 flex items-center justify-center">
+                  <img
+                    src={character.imageUrl || "/placeholder.svg"}
+                    alt={character.name}
+                    className="w-full h-full object-cover"
+                  />
                   <Button
-                    key={trait}
-                    type="button"
-                    variant={(newCharacter.traits || []).includes(trait) ? "default" : "outline"}
+                    variant="secondary"
                     size="sm"
-                    onClick={() => toggleNewCharacterTrait(trait)}
-                    className="text-xs"
+                    className="absolute top-2 right-2"
+                    onClick={() => handleRegenerateImage(character.id)}
                   >
-                    {trait}
+                    <RefreshCw className="h-4 w-4" />
                   </Button>
-                ))}
+                </div>
               </div>
-            </div>
 
-            <div className="flex space-x-2">
-              <Button
-                onClick={handleAddCharacter}
-                disabled={!newCharacter.name?.trim()}
-                className="flex-1"
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                Add Character
-              </Button>
-              <Button
-                variant="outline"
-                onClick={() => {
-                  setShowAddForm(false)
-                  setNewCharacter({ name: '', description: '', traits: [], relationships: [], appearance: {} })
-                }}
-              >
-                Cancel
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+              <CardContent className="p-4">
+                {editingCharacter === character.id ? (
+                  <div className="space-y-4">
+                    <Input
+                      value={character.name}
+                      onChange={(e) => handleUpdateCharacter(character.id, { name: e.target.value })}
+                      placeholder="Character name"
+                    />
+                    <Textarea
+                      value={character.description}
+                      onChange={(e) => handleUpdateCharacter(character.id, { description: e.target.value })}
+                      placeholder="Character description"
+                      rows={3}
+                    />
+                    
+                    {/* Appearance */}
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <Label className="text-xs">Hair Color</Label>
+                        <select
+                          value={character.appearance.hairColor || ''}
+                          onChange={(e) => handleUpdateCharacter(character.id, {
+                            appearance: { ...character.appearance, hairColor: e.target.value }
+                          })}
+                          className="w-full p-2 border rounded text-sm"
+                        >
+                          <option value="">Select...</option>
+                          {HAIR_COLORS.map(color => (
+                            <option key={color} value={color}>{color}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <div>
+                        <Label className="text-xs">Clothing</Label>
+                        <select
+                          value={character.appearance.clothing || ''}
+                          onChange={(e) => handleUpdateCharacter(character.id, {
+                            appearance: { ...character.appearance, clothing: e.target.value }
+                          })}
+                          className="w-full p-2 border rounded text-sm"
+                        >
+                          <option value="">Select...</option>
+                          {CLOTHING_OPTIONS.map(clothing => (
+                            <option key={clothing} value={clothing}>{clothing}</option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+
+                    <div className="flex space-x-2">
+                      <Button
+                        size="sm"
+                        onClick={() => setEditingCharacter(null)}
+                      >
+                        Save
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => setEditingCharacter(null)}
+                      >
+                        Cancel
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <h4 className="font-semibold text-lg">{character.name}</h4>
+                      <div className="flex space-x-1">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setEditingCharacter(character.id)}
+                        >
+                          <Edit3 className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleDeleteCharacter(character.id)}
+                          className="text-red-600 hover:text-red-700"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+
+                    <p className="text-gray-600 text-sm">{character.description}</p>
+
+                    {/* Character Traits */}
+                    <div>
+                      <Label className="text-xs font-medium text-gray-500 mb-2 block">
+                        Character Traits
+                      </Label>
+                      <div className="flex flex-wrap gap-1 mb-2">
+                        {character.traits.map((trait) => (
+                          <Badge
+                            key={trait}
+                            variant="secondary"
+                            className="text-xs cursor-pointer hover:bg-red-100"
+                            onClick={() => toggleTrait(character.id, trait)}
+                          >
+                            {trait} ×
+                          </Badge>
+                        ))}
+                      </div>
+                      <div className="flex flex-wrap gap-1">
+                        {CHARACTER_TRAITS
+                          .filter(trait => !character.traits.includes(trait))
+                          .slice(0, 4)
+                          .map((trait) => (
+                            <Badge
+                              key={trait}
+                              variant="outline"
+                              className="text-xs cursor-pointer hover:bg-purple-50"
+                              onClick={() => toggleTrait(character.id, trait)}
+                            >
+                              + {trait}
+                            </Badge>
+                          ))}
+                      </div>
+                    </div>
+
+                    {/* Appearance */}
+                    {(character.appearance.hairColor || character.appearance.clothing) && (
+                      <div className="flex space-x-2">
+                        {character.appearance.hairColor && (
+                          <Badge variant="outline" className="text-xs">
+                            {character.appearance.hairColor} hair
+                          </Badge>
+                        )}
+                        {character.appearance.clothing && (
+                          <Badge variant="outline" className="text-xs">
+                            {character.appearance.clothing}
+                          </Badge>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          ))}
+        </div>
       )}
 
-      {/* Character Consistency Alert */}
-      {characters.length > 0 && (
-        <Alert className="border-blue-200 bg-blue-50">
-          <Users className="h-4 w-4 text-blue-600" />
-          <AlertDescription className="text-blue-800">
-            <strong>Character Consistency:</strong> These characters will appear consistently throughout all scenes in your story. 
-            You can edit their appearance and traits to match your vision perfectly.
-          </AlertDescription>
-        </Alert>
-      )}
+      {/* Add New Character */}
+      <Card className="border-dashed border-2 border-gray-300">
+        <CardHeader>
+          <CardTitle className="flex items-center space-x-2 text-gray-600">
+            <Plus className="h-5 w-5" />
+            <span>Add New Character</span>
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid md:grid-cols-2 gap-4">
+            <Input
+              placeholder="Character name"
+              value={newCharacter.name || ''}
+              onChange={(e) => setNewCharacter({ ...newCharacter, name: e.target.value })}
+            />
+            <Input
+              placeholder="Age (optional)"
+              value={newCharacter.age || ''}
+              onChange={(e) => setNewCharacter({ ...newCharacter, age: e.target.value })}
+            />
+          </div>
+          <Textarea
+            placeholder="Describe this character..."
+            value={newCharacter.description || ''}
+            onChange={(e) => setNewCharacter({ ...newCharacter, description: e.target.value })}
+            rows={2}
+          />
+          <Button
+            onClick={handleAddCharacter}
+            disabled={!newCharacter.name?.trim()}
+            className="w-full"
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Add Character
+          </Button>
+        </CardContent>
+      </Card>
 
-      {/* Summary */}
+      {/* Re-extract Button */}
       {characters.length > 0 && (
-        <Card className="bg-purple-50 border-purple-200">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="font-medium text-purple-900">
-                  {characters.length} Character{characters.length !== 1 ? 's' : ''} Ready
-                </p>
-                <p className="text-sm text-purple-700">
-                  Your characters are ready for scene creation!
-                </p>
-              </div>
-              <Badge variant="secondary" className="bg-purple-100 text-purple-800">
-                Ready for Scenes!
-              </Badge>
-            </div>
-          </CardContent>
-        </Card>
+        <div className="text-center">
+          <Button
+            variant="outline"
+            onClick={handleExtractCharacters}
+            disabled={isExtracting}
+          >
+            {isExtracting ? (
+              <>
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current mr-2"></div>
+                Finding More Characters...
+              </>
+            ) : (
+              <>
+                <Wand2 className="h-4 w-4 mr-2" />
+                Find More Characters
+              </>
+            )}
+          </Button>
+        </div>
       )}
     </div>
   )
