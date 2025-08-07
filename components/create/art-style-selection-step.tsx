@@ -69,7 +69,6 @@ export function ArtStyleSelectionStep({ formData, updateFormData, onNext, onPrev
   const handleStyleSelect = (style: typeof ART_STYLES[0]) => {
     updateFormData({
       artStyle: style.name,
-      art_style: style.name,
       colorPalette: style.colorPalette,
       illustrationStyle: style.mood
     })

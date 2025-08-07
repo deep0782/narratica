@@ -50,9 +50,9 @@ export function GeneratingStep() {
 
       setCurrentStepIndex(stepIndex)
       const step = GENERATION_STEPS[stepIndex]
-      
-      // If this is the artwork step, trigger image generation
-      if (step.id === 'artwork') {
+
+      // If this is the cartoon step, trigger image generation
+      if (step.id === 'cartoon') {
         generateArtwork()
       }
 
