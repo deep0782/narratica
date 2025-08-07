@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { BookOpen, Eye, EyeOff, CheckCircle, XCircle, AlertCircle } from 'lucide-react'
+import { BookOpen, Eye, EyeOff, CheckCircle, XCircle, AlertCircle, ArrowLeft, Home } from 'lucide-react'
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 import { useRouter, useSearchParams } from 'next/navigation'
 
@@ -168,7 +168,7 @@ export default function ResetPasswordPage() {
 
   if (success) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-yellow-50 flex items-center justify-center p-4">
+      <div className="min-h-screen flex items-center justify-center p-4">
         <div className="w-full max-w-md">
           <Card className="shadow-xl border-0 text-center">
             <CardContent className="p-8">
@@ -192,18 +192,27 @@ export default function ResetPasswordPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-yellow-50 flex items-center justify-center p-4">
+    <div className="min-h-screen flex items-center justify-center p-4">
       <div className="w-full max-w-md">
-        {/* Header */}
+        {/* Header with Back to Home */}
         <div className="text-center mb-8">
-          <Link href="/" className="inline-flex items-center space-x-2 mb-6">
-            <div className="bg-gradient-to-r from-purple-500 to-pink-500 p-2 rounded-xl">
+          <Link href="/" className="inline-flex items-center space-x-2 mb-6 group">
+            <div className="bg-gradient-to-r from-purple-500 to-pink-500 p-2 rounded-xl group-hover:scale-105 transition-transform duration-200">
               <BookOpen className="h-6 w-6 text-white" />
             </div>
             <span className="text-xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
               Narratica
             </span>
           </Link>
+          
+          {/* Back to Home Link */}
+          <div className="mb-4">
+            <Link href="/" className="inline-flex items-center text-sm text-gray-600 hover:text-purple-600 transition-colors">
+              <ArrowLeft className="h-4 w-4 mr-1" />
+              Back to Home
+            </Link>
+          </div>
+          
           <h1 className="text-2xl font-bold text-gray-900 mb-2">Reset Your Password</h1>
           <p className="text-gray-600">Create a new secure password for your account</p>
         </div>
@@ -324,6 +333,14 @@ export default function ResetPasswordPage() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Additional Navigation */}
+        <div className="text-center mt-8">
+          <Link href="/" className="inline-flex items-center text-sm text-gray-500 hover:text-purple-600 transition-colors">
+            <Home className="h-4 w-4 mr-1" />
+            Return to Narratica Home
+          </Link>
+        </div>
       </div>
     </div>
   )
