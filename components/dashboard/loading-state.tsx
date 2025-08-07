@@ -6,7 +6,7 @@ import { Sparkles } from 'lucide-react'
 
 export function LoadingState() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-yellow-50">
+    <>
       {/* Header Skeleton */}
       <div className="bg-white/95 backdrop-blur-sm border-b border-purple-100 sticky top-0 z-40">
         <div className="container mx-auto px-4">
@@ -122,6 +122,6 @@ export function LoadingState() {
           </div>
         </div>
       </div>
-    </div>
+    </>
   )
 }

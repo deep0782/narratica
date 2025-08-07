@@ -11,7 +11,7 @@ import {
   DropdownMenuSeparator, 
   DropdownMenuTrigger 
 } from '@/components/ui/dropdown-menu'
-import { BookOpen, Settings, User, LogOut, Bell, Crown } from 'lucide-react'
+import { BookOpen, Settings, User, LogOut, Bell, Crown, Home, ArrowLeft } from 'lucide-react'
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 import { useRouter } from 'next/navigation'
 import type { ParentProfile } from '@/lib/supabase'
@@ -60,18 +60,28 @@ export function DashboardHeader({ profile }: DashboardHeaderProps) {
     <header className="bg-white/95 backdrop-blur-sm border-b border-purple-100 sticky top-0 z-40">
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-16">
-          {/* Logo */}
-          <Link href="/dashboard" className="flex items-center space-x-2">
-            <div className="bg-gradient-to-r from-purple-500 to-pink-500 p-2 rounded-xl">
-              <BookOpen className="h-6 w-6 text-white" />
-            </div>
-            <div>
-              <span className="text-xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
-                Narratica
-              </span>
-              <div className="text-xs text-gray-500">Story Dashboard</div>
-            </div>
-          </Link>
+          {/* Logo and Back to Home */}
+          <div className="flex items-center space-x-4">
+            <Link href="/dashboard" className="flex items-center space-x-2">
+              <div className="bg-gradient-to-r from-purple-500 to-pink-500 p-2 rounded-xl">
+                <BookOpen className="h-6 w-6 text-white" />
+              </div>
+              <div>
+                <span className="text-xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+                  Narratica
+                </span>
+                <div className="text-xs text-gray-500">Story Dashboard</div>
+              </div>
+            </Link>
+            
+            {/* Back to Home Link */}
+            <Link href="/">
+              <Button variant="ghost" size="sm" className="text-gray-600 hover:text-purple-600">
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Back to Home
+              </Button>
+            </Link>
+          </div>
 
           {/* Navigation */}
           <nav className="hidden md:flex items-center space-x-6">
@@ -133,6 +143,15 @@ export function DashboardHeader({ profile }: DashboardHeaderProps) {
                   <p className="text-sm font-medium">{profile?.full_name}</p>
                   <p className="text-xs text-gray-500">{profile?.email}</p>
                 </div>
+                
+                <DropdownMenuItem asChild>
+                  <Link href="/" className="flex items-center">
+                    <Home className="h-4 w-4 mr-2" />
+                    Back to Home
+                  </Link>
+                </DropdownMenuItem>
+                
+                <DropdownMenuSeparator />
                 
                 <DropdownMenuItem asChild>
                   <Link href="/dashboard/profile" className="flex items-center">
