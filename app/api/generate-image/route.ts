@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 
 const TOGETHER_API_KEY = process.env.TOGETHER_API_KEY
-const MODEL = 'black-forest-labs/FLUX.1-schnell'
+const MODEL = 'black-forest-labs/FLUX.1-schnell-Free'
 
 export async function POST(request: Request) {
   if (!TOGETHER_API_KEY) {
