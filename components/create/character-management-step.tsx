@@ -111,11 +111,16 @@ export function CharacterManagementStep({ formData, updateFormData, onNext, onPr
   }
 
   const handleEditCharacter = (characterId: string) => {
-    const character = formData.characters?.find(c => c.id === characterId)
+    const character = formData.characters?.find(c => c.id === characterId) ||
+                     formData.extractedCharacters?.find(c => c.id === characterId)
     if (character) {
       setNewCharacter({
-        ...character,
-        imageUrl: (character as any).imageUrl || ''
+        name: character.name,
+        description: character.description,
+        appearance: character.appearance || '',
+        role: character.role,
+        imageUrl: (character as any).imageUrl || '',
+        isChildCharacter: character.isChildCharacter
       })
       setEditingCharacter(characterId)
       setIsAddingCharacter(true)
@@ -124,23 +129,47 @@ export function CharacterManagementStep({ formData, updateFormData, onNext, onPr
 
   const handleUpdateCharacter = () => {
     if (editingCharacter && newCharacter.name && newCharacter.description) {
-      const updatedCharacters = formData.characters?.map(char =>
-        char.id === editingCharacter
-          ? {
-              ...char,
-              name: newCharacter.name!,
-              description: newCharacter.description!,
-              appearance: newCharacter.appearance || '',
-              role: newCharacter.role as 'main' | 'supporting' | 'minor',
-              imageUrl: newCharacter.imageUrl
-            }
-          : char
-      ) || []
+      // Find if the character is in regular characters or extracted characters
+      const isInRegularCharacters = formData.characters?.some(c => c.id === editingCharacter)
+      
+      if (isInRegularCharacters) {
+        const updatedCharacters = formData.characters?.map(char =>
+          char.id === editingCharacter
+            ? {
+                ...char,
+                name: newCharacter.name!,
+                description: newCharacter.description!,
+                appearance: newCharacter.appearance || '',
+                role: newCharacter.role as 'main' | 'supporting' | 'minor',
+                imageUrl: newCharacter.imageUrl,
+                isChildCharacter: newCharacter.isChildCharacter || false
+              }
+            : char
+        ) || []
+        updateFormData({ characters: updatedCharacters })
+      } else {
+        // Handle extracted characters
+        const updatedExtractedCharacters = formData.extractedCharacters?.map(char =>
+          char.id === editingCharacter
+            ? {
+                ...char,
+                name: newCharacter.name!,
+                description: newCharacter.description!,
+                appearance: newCharacter.appearance || '',
+                role: newCharacter.role as 'main' | 'supporting' | 'minor',
+                imageUrl: newCharacter.imageUrl,
+                isChildCharacter: newCharacter.isChildCharacter || false
+              }
+            : char
+        ) || []
+        updateFormData({ extractedCharacters: updatedExtractedCharacters })
+      }
 
-      updateFormData({ characters: updatedCharacters })
+      // Reset form state
       setNewCharacter({ name: '', description: '', appearance: '', role: 'supporting', imageUrl: '' })
       setIsAddingCharacter(false)
       setEditingCharacter(null)
+      setImageError(null)
     }
   }
 
