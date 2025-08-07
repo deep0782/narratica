@@ -9,7 +9,7 @@ const GENERATION_STEPS = [
   { id: 'analyzing', label: 'Analyzing your story', icon: BookOpen, duration: 2000 },
   { id: 'characters', label: 'Creating characters', icon: Users, duration: 3000 },
   { id: 'scenes', label: 'Structuring scenes', icon: Film, duration: 2500 },
-  { id: 'artwork', label: 'Generating artwork', icon: Palette, duration: 4000 },
+  { id: 'artwork', label: 'Generating artwork', icon: Palette, duration: 8000 }, // Increased duration
   { id: 'finalizing', label: 'Adding magical touches', icon: Wand2, duration: 2000 }
 ]
 
@@ -26,7 +26,23 @@ export function GeneratingStep() {
       totalDuration += step.duration
     })
 
-    const runStep = (stepIndex: number) => {
+    const generateArtwork = async () => {
+      try {
+        const response = await fetch('/api/generate-image', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            prompt: 'A magical children\'s storybook illustration in a whimsical style'
+          })
+        })
+        const data = await response.json()
+        // Handle the generated image URL here
+      } catch (error) {
+        console.error('Failed to generate artwork:', error)
+      }
+    }
+
+    const runStep = async (stepIndex: number) => {
       if (stepIndex >= GENERATION_STEPS.length) {
         setProgress(100)
         return
@@ -35,6 +51,11 @@ export function GeneratingStep() {
       setCurrentStepIndex(stepIndex)
       const step = GENERATION_STEPS[stepIndex]
       
+      // If this is the artwork step, trigger image generation
+      if (step.id === 'artwork') {
+        generateArtwork()
+      }
+
       // Animate progress for current step
       const stepStartProgress = (currentDuration / totalDuration) * 100
       const stepEndProgress = ((currentDuration + step.duration) / totalDuration) * 100
