@@ -60,8 +60,18 @@ export interface StoryFormData {
   targetAgeGroup: 'toddlers' | 'elementary' | 'preteens'
   educationalTheme: string
   
+  // Story Preferences (missing properties)
+  story_description: string
+  educational_theme: string
+  story_length: 'short' | 'medium' | 'long'
+  character_role: 'protagonist' | 'supporting' | 'narrator'
+  setting_preference?: string
+  moral_lesson?: string
+  specific_elements: string[]
+  
   // Art Style
   artStyle: string
+  art_style: string
   
   // Characters
   characters: Character[]
@@ -96,7 +106,16 @@ export default function CreateStoryPage() {
     educationalTheme: '',
     artStyle: '',
     characters: [],
-    scenes: []
+    scenes: [],
+    // Additional required properties
+    story_description: '',
+    educational_theme: '',
+    story_length: 'medium',
+    character_role: 'protagonist',
+    setting_preference: '',
+    moral_lesson: '',
+    specific_elements: [],
+    art_style: ''
   })
 
   useEffect(() => {
@@ -246,19 +265,27 @@ export default function CreateStoryPage() {
             onNewChildData={(data) => updateFormData({ newChildData: data, selectedChild: null })}
           />
         )
-      case 1:
+      case 1: // Story Input
         return (
           <StoryInputStep
             formData={formData}
-            onUpdate={updateFormData}
+            onUpdate={(updates) => {
+              // Sync duplicate properties
+              const syncedUpdates = {
+                ...updates,
+                story_description: updates.storyDescription || updates.story_description || formData.story_description,
+                educational_theme: updates.educationalTheme || updates.educational_theme || formData.educational_theme
+              }
+              updateFormData(syncedUpdates)
+            }}
             profile={profile}
           />
         )
-      case 2:
+      case 2: // Art Style
         return (
           <ArtStyleSelectionStep
             selectedStyle={formData.artStyle}
-            onStyleSelect={(style) => updateFormData({ artStyle: style })}
+            onStyleSelect={(style) => updateFormData({ artStyle: style, art_style: style })}
             childName={formData.selectedChild?.name || formData.newChildData?.name || 'Your child'}
           />
         )

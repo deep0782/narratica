@@ -1,101 +1,124 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useParams, useRouter } from 'next/navigation'
+import { useParams } from 'next/navigation'
 import { StorybookViewer } from '@/components/story/storybook-viewer'
-import { Button } from '@/components/ui/button'
-import { ArrowLeft, Download, Share2, Heart } from 'lucide-react'
+import { getCurrentUser, getProfile } from '@/lib/supabase'
+import type { ParentProfile } from '@/lib/supabase'
 
-// Mock story data - in production this would come from the database
-const mockStory = {
+interface Story {
+  id: string
+  title: string
+  child_name: string
+  art_style: string
+  educational_theme: string
+  pages: StoryPage[]
+  created_at: string
+}
+
+interface StoryPage {
+  id: string
+  page_number: number
+  scene_title: string
+  narration_text: string
+  image_url: string
+  characters: string[]
+}
+
+// Mock story data for demonstration
+const mockStory: Story = {
   id: 'story-1',
-  title: 'Emma\'s Magical Forest Adventure',
-  childName: 'Emma',
-  scenes: [
+  title: 'Emma\'s Magical Garden Adventure',
+  child_name: 'Emma',
+  art_style: 'Disney Style',
+  educational_theme: 'Friendship & Kindness',
+  created_at: '2024-01-15T10:00:00Z',
+  pages: [
     {
-      id: 'scene-1',
-      title: 'The Enchanted Beginning',
-      narration: 'Once upon a time, in a magical forest where the trees whispered secrets and flowers danced in the breeze, lived a brave little girl named Emma. She had sparkling eyes full of curiosity and a heart as big as the moon.',
-      imageUrl: '/magical-storybook-scene.png',
-      order: 1
+      id: 'page-1',
+      page_number: 1,
+      scene_title: 'The Discovery',
+      narration_text: 'Once upon a time, in a cozy little house with a beautiful garden, lived a curious girl named Emma. She loved exploring every corner of her backyard, always looking for new adventures. One sunny morning, while watering the flowers with her grandmother, Emma noticed something magical sparkling behind the old oak tree.',
+      image_url: '/magical-garden-discovery.png',
+      characters: ['Emma', 'Grandmother']
     },
     {
-      id: 'scene-2',
-      title: 'Meeting the Friendly Dragon',
-      narration: 'As Emma wandered deeper into the forest, she heard a gentle rumbling sound. Behind a cluster of rainbow flowers, she discovered a friendly dragon with shimmering purple scales. "Hello there!" said the dragon with a warm smile. "I\'ve been waiting for a brave friend like you!"',
-      imageUrl: '/magical-storybook-scene.png',
-      order: 2
+      id: 'page-2',
+      page_number: 2,
+      scene_title: 'The Magical Portal',
+      narration_text: 'As Emma approached the oak tree, she discovered a shimmering portal made of intertwined vines and glowing flowers. The portal hummed with gentle magic, and through it, she could see a magnificent garden filled with talking animals and singing flowers. "What a wonderful discovery!" Emma whispered, her eyes wide with wonder.',
+      image_url: '/glowing-vine-portal.png',
+      characters: ['Emma']
     },
     {
-      id: 'scene-3',
-      title: 'The Magic Crystal Quest',
-      narration: 'The dragon told Emma about a magical crystal that had lost its glow, making all the forest animals sad. "Will you help me find the Crystal of Kindness?" asked the dragon. Emma\'s eyes lit up with excitement. "Of course! Let\'s help our forest friends!"',
-      imageUrl: '/magical-storybook-scene.png',
-      order: 3
+      id: 'page-3',
+      page_number: 3,
+      scene_title: 'Meeting New Friends',
+      narration_text: 'Stepping through the portal, Emma found herself in the most beautiful garden she had ever seen. Colorful butterflies danced around her, and a friendly rabbit named Rosie hopped up to greet her. "Welcome to the Friendship Garden!" said Rosie with a warm smile. "We\'ve been waiting for someone kind like you to help us with a very important mission."',
+      image_url: '/magical-garden-meeting.png',
+      characters: ['Emma', 'Rosie the Rabbit']
     },
     {
-      id: 'scene-4',
-      title: 'Working Together',
-      narration: 'Emma and her dragon friend worked together, using Emma\'s cleverness and the dragon\'s gentle magic. They helped a lost bunny find its family, shared their lunch with hungry squirrels, and sang songs to cheer up a lonely owl.',
-      imageUrl: '/magical-storybook-scene.png',
-      order: 4
+      id: 'page-4',
+      page_number: 4,
+      scene_title: 'The Mission of Kindness',
+      narration_text: 'Rosie explained that the garden\'s magic was fading because the animals had forgotten how to be kind to each other. "We need someone with a big heart to remind us how friendship works," she said sadly. Emma smiled brightly and said, "I would love to help! My grandmother always says that kindness is the most powerful magic of all."',
+      image_url: '/sad-magical-gathering.png',
+      characters: ['Emma', 'Rosie the Rabbit', 'Garden Animals']
     },
     {
-      id: 'scene-5',
-      title: 'The Crystal\'s Glow Returns',
-      narration: 'With each act of kindness, the Crystal of Kindness began to glow brighter and brighter. Emma realized that the crystal\'s magic came from the kindness in her heart. The forest filled with warm, golden light, and all the animals cheered with joy.',
-      imageUrl: '/magical-storybook-scene.png',
-      order: 5
+      id: 'page-5',
+      page_number: 5,
+      scene_title: 'Spreading Kindness',
+      narration_text: 'Emma spent the day teaching the garden animals about friendship. She showed them how to share their favorite foods, how to listen when someone was sad, and how to celebrate each other\'s differences. Soon, the garden began to glow brighter as acts of kindness filled the air with magical sparkles.',
+      image_url: '/magical-garden-kindness.png',
+      characters: ['Emma', 'Various Garden Animals']
     },
     {
-      id: 'scene-6',
-      title: 'A Celebration of Friendship',
-      narration: 'The forest animals threw a wonderful celebration for Emma and her dragon friend. They danced under the starlight, shared delicious forest treats, and promised to always be kind to one another. Emma had learned that the greatest magic of all is kindness.',
-      imageUrl: '/magical-storybook-scene.png',
-      order: 6
+      id: 'page-6',
+      page_number: 6,
+      scene_title: 'The Magic Returns',
+      narration_text: 'As the sun began to set, the Friendship Garden was more beautiful than ever. The flowers sang joyful songs, the trees swayed in a gentle dance, and all the animals played together happily. "Thank you, Emma," said Rosie. "You\'ve reminded us that the greatest magic comes from caring for one another."',
+      image_url: '/magical-sunset-garden.png',
+      characters: ['Emma', 'Rosie the Rabbit', 'All Garden Friends']
     },
     {
-      id: 'scene-7',
-      title: 'The Journey Home',
-      narration: 'As the moon rose high in the sky, it was time for Emma to return home. The dragon gave her a special friendship bracelet that would always remind her of their magical adventure. "Remember," said the dragon, "kindness is the most powerful magic in the world."',
-      imageUrl: '/magical-storybook-scene.png',
-      order: 7
-    },
-    {
-      id: 'scene-8',
-      title: 'Sweet Dreams and New Adventures',
-      narration: 'Emma returned home with a heart full of joy and wonderful memories. As she drifted off to sleep, she dreamed of all the new adventures waiting for her in the magical forest. And she knew that wherever she went, she would always carry the magic of kindness with her.',
-      imageUrl: '/magical-storybook-scene.png',
-      order: 8
+      id: 'page-7',
+      page_number: 7,
+      scene_title: 'Home with New Wisdom',
+      narration_text: 'When Emma returned home through the magical portal, she carried the garden\'s lessons in her heart. She hugged her grandmother tightly and shared everything she had learned about friendship and kindness. From that day forward, Emma made sure to spread kindness wherever she went, knowing that even small acts of caring could create the most wonderful magic.',
+      image_url: '/girl-grandmother-hug.png',
+      characters: ['Emma', 'Grandmother']
     }
-  ],
-  artStyle: 'disney-style',
-  createdAt: '2024-01-15T10:00:00Z'
+  ]
 }
 
 export default function StoryPage() {
   const params = useParams()
-  const router = useRouter()
-  const [story, setStory] = useState(mockStory)
-  const [isLoading, setIsLoading] = useState(false)
+  const [story, setStory] = useState<Story | null>(null)
+  const [profile, setProfile] = useState<ParentProfile | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
 
-  const handleBack = () => {
-    router.push('/dashboard')
-  }
+  useEffect(() => {
+    loadStoryData()
+  }, [params.id])
 
-  const handleDownload = () => {
-    // In production, this would generate and download a PDF
-    console.log('Downloading story...')
-  }
+  const loadStoryData = async () => {
+    try {
+      const user = await getCurrentUser()
+      if (user) {
+        const userProfile = await getProfile(user.id)
+        setProfile(userProfile)
+      }
 
-  const handleShare = () => {
-    // In production, this would open a share dialog
-    console.log('Sharing story...')
-  }
-
-  const handleFavorite = () => {
-    // In production, this would toggle favorite status
-    console.log('Adding to favorites...')
+      // In a real app, this would fetch the story from the database
+      // For now, we'll use mock data
+      setStory(mockStory)
+    } catch (error) {
+      console.error('Error loading story:', error)
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   if (isLoading) {
@@ -109,61 +132,16 @@ export default function StoryPage() {
     )
   }
 
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 to-pink-50">
-      {/* Header */}
-      <div className="bg-white shadow-sm border-b">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
-              <Button
-                variant="ghost"
-                onClick={handleBack}
-                className="flex items-center space-x-2"
-              >
-                <ArrowLeft className="h-4 w-4" />
-                <span>Back to Dashboard</span>
-              </Button>
-              <div>
-                <h1 className="text-xl font-bold text-gray-900">{story.title}</h1>
-                <p className="text-sm text-gray-600">A magical story for {story.childName}</p>
-              </div>
-            </div>
-            
-            <div className="flex items-center space-x-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleFavorite}
-                className="flex items-center space-x-2"
-              >
-                <Heart className="h-4 w-4" />
-                <span>Favorite</span>
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleShare}
-                className="flex items-center space-x-2"
-              >
-                <Share2 className="h-4 w-4" />
-                <span>Share</span>
-              </Button>
-              <Button
-                size="sm"
-                onClick={handleDownload}
-                className="flex items-center space-x-2 bg-purple-600 hover:bg-purple-700"
-              >
-                <Download className="h-4 w-4" />
-                <span>Download PDF</span>
-              </Button>
-            </div>
-          </div>
+  if (!story) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-purple-50 to-pink-50 flex items-center justify-center">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-gray-900 mb-4">Story Not Found</h1>
+          <p className="text-gray-600">The story you're looking for doesn't exist.</p>
         </div>
       </div>
+    )
+  }
 
-      {/* Storybook Viewer */}
-      <StorybookViewer story={story} />
-    </div>
-  )
+  return <StorybookViewer story={story} profile={profile} />
 }
