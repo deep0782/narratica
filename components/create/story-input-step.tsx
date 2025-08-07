@@ -1,409 +1,230 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
-import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Label } from '@/components/ui/label'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Alert, AlertDescription } from '@/components/ui/alert'
-import { Wand2, Lightbulb, BookOpen, Users, Heart, Shield, Sparkles, AlertTriangle, Clock, Edit3 } from 'lucide-react'
-import { generateStoryTitle, checkContentSafety } from '@/lib/ai-services'
+import { Sparkles, Lightbulb, X } from 'lucide-react'
 import type { StoryFormData } from '@/app/create/page'
-import type { ParentProfile } from '@/lib/supabase'
 
 interface StoryInputStepProps {
   formData: StoryFormData
-  onUpdate: (updates: Partial<StoryFormData>) => void
-  profile: ParentProfile | null
+  updateFormData: (updates: Partial<StoryFormData>) => void
+  onNext: () => void
 }
 
 const STORY_PROMPTS = [
-  "What magical adventure would your child love to experience?",
-  "Describe a world where your child becomes the hero of their own story...",
-  "Imagine your child discovering a secret that changes everything...",
-  "What if your child could talk to animals? What would happen?",
-  "Tell us about a time when your child's kindness saved the day..."
-]
-
-const STORY_STARTERS = [
-  "Once upon a time, in a land filled with rainbow bridges and talking trees...",
-  "Deep in the enchanted forest, where flowers sing and butterflies dance...",
-  "In a cozy village where everyone knows each other's name...",
-  "High up in the clouds, where dragons are friendly and castles float...",
-  "Under the sparkling ocean, where mermaids and dolphins play together..."
+  "A magical adventure in an enchanted forest",
+  "A brave child who saves their neighborhood",
+  "A friendship between unlikely animal companions",
+  "A journey to a land made of candy and sweets",
+  "A story about overcoming fears and being brave",
+  "An underwater adventure with sea creatures",
+  "A tale about the importance of telling the truth",
+  "A space adventure to distant planets"
 ]
 
 const EDUCATIONAL_THEMES = [
-  { id: 'friendship', label: 'Friendship & Kindness', icon: Heart, color: 'bg-pink-100 text-pink-700' },
-  { id: 'courage', label: 'Courage & Bravery', icon: Shield, color: 'bg-red-100 text-red-700' },
-  { id: 'honesty', label: 'Honesty & Truth', icon: Lightbulb, color: 'bg-yellow-100 text-yellow-700' },
-  { id: 'responsibility', label: 'Responsibility', icon: Users, color: 'bg-blue-100 text-blue-700' },
-  { id: 'empathy', label: 'Empathy & Understanding', icon: Heart, color: 'bg-purple-100 text-purple-700' },
-  { id: 'perseverance', label: 'Perseverance', icon: Shield, color: 'bg-green-100 text-green-700' },
-  { id: 'creativity', label: 'Creativity & Imagination', icon: Sparkles, color: 'bg-indigo-100 text-indigo-700' },
-  { id: 'nature', label: 'Nature & Environment', icon: BookOpen, color: 'bg-emerald-100 text-emerald-700' }
+  "Friendship and Kindness",
+  "Courage and Bravery", 
+  "Honesty and Truth",
+  "Responsibility",
+  "Empathy and Understanding",
+  "Perseverance",
+  "Creativity and Imagination",
+  "Environmental Awareness"
 ]
 
-const STORY_LENGTHS = [
-  { pages: 3, scenes: 5, label: 'Quick Story', description: '3 pages, perfect for bedtime' },
-  { pages: 5, scenes: 8, label: 'Short Adventure', description: '5 pages, great for young readers' },
-  { pages: 8, scenes: 10, label: 'Medium Tale', description: '8 pages, engaging story arc' },
-  { pages: 12, scenes: 15, label: 'Epic Journey', description: '12 pages, detailed adventure' }
-]
+export function StoryInputStep({ formData, updateFormData, onNext }: StoryInputStepProps) {
+  const [customElement, setCustomElement] = useState('')
 
-export function StoryInputStep({ formData, onUpdate, profile }: StoryInputStepProps) {
-  const [currentPrompt, setCurrentPrompt] = useState(0)
-  const [isGeneratingTitle, setIsGeneratingTitle] = useState(false)
-  const [isEditingTitle, setIsEditingTitle] = useState(false)
-  const [customTitle, setCustomTitle] = useState('')
-  const [contentSafety, setContentSafety] = useState<{ safe: boolean; issues?: string[] } | null>(null)
-  const [isCheckingSafety, setIsCheckingSafety] = useState(false)
+  const handleStoryDescriptionChange = (value: string) => {
+    updateFormData({ 
+      storyDescription: value,
+      story_description: value 
+    })
+  }
 
-  // Rotate prompts every 5 seconds
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setCurrentPrompt(prev => (prev + 1) % STORY_PROMPTS.length)
-    }, 5000)
-    return () => clearInterval(interval)
-  }, [])
+  const handleTitleChange = (value: string) => {
+    updateFormData({ autoGeneratedTitle: value })
+  }
 
-  // Check content safety when story description changes
-  useEffect(() => {
-    if (formData.storyDescription.length > 50) {
-      const timer = setTimeout(async () => {
-        setIsCheckingSafety(true)
-        try {
-          const result = await checkContentSafety(formData.storyDescription)
-          setContentSafety(result)
-        } catch (error) {
-          console.error('Content safety check failed:', error)
-        } finally {
-          setIsCheckingSafety(false)
-        }
-      }, 1000)
-      return () => clearTimeout(timer)
-    }
-  }, [formData.storyDescription])
+  const handleEducationalThemeChange = (theme: string) => {
+    updateFormData({ educational_theme: theme })
+  }
 
-  const handleGenerateTitle = async () => {
-    if (!formData.storyDescription.trim()) return
-    
-    setIsGeneratingTitle(true)
-    try {
-      const result = await generateStoryTitle(formData.storyDescription)
-      onUpdate({ autoGeneratedTitle: result.title })
-    } catch (error) {
-      console.error('Title generation failed:', error)
-    } finally {
-      setIsGeneratingTitle(false)
+  const addCustomElement = () => {
+    if (customElement.trim()) {
+      const currentElements = formData.specific_elements || []
+      updateFormData({
+        specific_elements: [...currentElements, customElement.trim()]
+      })
+      setCustomElement('')
     }
   }
 
-  const handleTitleEdit = () => {
-    setCustomTitle(formData.customTitle || formData.autoGeneratedTitle)
-    setIsEditingTitle(true)
+  const removeElement = (index: number) => {
+    const currentElements = formData.specific_elements || []
+    updateFormData({
+      specific_elements: currentElements.filter((_, i) => i !== index)
+    })
   }
 
-  const handleTitleSave = () => {
-    onUpdate({ customTitle })
-    setIsEditingTitle(false)
+  const usePrompt = (prompt: string) => {
+    handleStoryDescriptionChange(prompt)
   }
 
-  const handleStoryStarterClick = (starter: string) => {
-    onUpdate({ storyDescription: starter })
-  }
-
-  const isFreeTier = profile?.subscription_tier === 'free'
-  const characterCount = formData.storyDescription.length
-  const maxCharacters = 2000
+  const canProceed = formData.storyDescription.trim().length > 0 && formData.educational_theme
 
   return (
-    <div className="space-y-8">
-      {/* Header */}
-      <div className="text-center">
-        <h3 className="text-2xl font-bold text-gray-900 mb-2">
-          Tell us about your magical story idea
-        </h3>
-        <p className="text-gray-600 transition-all duration-500">
-          {STORY_PROMPTS[currentPrompt]}
+    <div className="max-w-4xl mx-auto space-y-8">
+      <div className="text-center space-y-2">
+        <h2 className="text-3xl font-bold text-gray-900">Tell Us About Your Story</h2>
+        <p className="text-gray-600">
+          Share your story ideas and we'll help bring them to life with AI magic
         </p>
       </div>
 
-      {/* Usage Warning for Free Tier */}
-      {isFreeTier && (
-        <Alert className="bg-amber-50 border-amber-200">
-          <AlertTriangle className="h-4 w-4 text-amber-600" />
-          <AlertDescription className="text-amber-800">
-            <strong>Free Plan:</strong> You have 2 story creations remaining this month. 
-            <Button variant="link" className="p-0 h-auto text-amber-800 underline ml-1">
-              Upgrade for unlimited stories
-            </Button>
-          </AlertDescription>
-        </Alert>
-      )}
+      <div className="grid gap-8 md:grid-cols-2">
+        {/* Story Input */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Sparkles className="h-5 w-5 text-purple-600" />
+              Story Description
+            </CardTitle>
+            <CardDescription>
+              Describe the story you'd like to create for your child
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="story-description">What should your story be about?</Label>
+              <Textarea
+                id="story-description"
+                placeholder="Tell us about the adventure, characters, setting, or theme you'd like to explore..."
+                value={formData.storyDescription}
+                onChange={(e) => handleStoryDescriptionChange(e.target.value)}
+                className="min-h-[120px]"
+              />
+            </div>
 
-      <div className="grid lg:grid-cols-3 gap-8">
-        {/* Main Story Input */}
-        <div className="lg:col-span-2 space-y-6">
-          {/* Story Description */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <BookOpen className="h-5 w-5 text-purple-600" />
-                <span>Your Story Idea</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <Label htmlFor="story-description">
-                  Describe your story (be as creative as you want!)
-                </Label>
-                <Textarea
-                  id="story-description"
-                  placeholder="Once upon a time..."
-                  value={formData.storyDescription}
-                  onChange={(e) => onUpdate({ storyDescription: e.target.value })}
-                  className="min-h-[200px] text-lg leading-relaxed resize-none"
-                  maxLength={maxCharacters}
-                />
-                <div className="flex justify-between items-center mt-2">
-                  <div className="flex items-center space-x-2">
-                    {isCheckingSafety && (
-                      <div className="flex items-center space-x-1 text-sm text-gray-500">
-                        <div className="animate-spin rounded-full h-3 w-3 border-b border-gray-400"></div>
-                        <span>Checking content...</span>
-                      </div>
-                    )}
-                    {contentSafety && !contentSafety.safe && (
-                      <Badge variant="destructive" className="text-xs">
-                        Content needs review
-                      </Badge>
-                    )}
-                    {contentSafety && contentSafety.safe && (
-                      <Badge variant="secondary" className="text-xs bg-green-100 text-green-700">
-                        Content approved
-                      </Badge>
-                    )}
-                  </div>
-                  <span className={`text-sm ${characterCount > maxCharacters * 0.9 ? 'text-red-500' : 'text-gray-500'}`}>
-                    {characterCount}/{maxCharacters}
-                  </span>
-                </div>
+            <div className="space-y-2">
+              <Label htmlFor="story-title">Story Title (Optional)</Label>
+              <Input
+                id="story-title"
+                placeholder="Leave blank for AI to generate a title"
+                value={formData.autoGeneratedTitle}
+                onChange={(e) => handleTitleChange(e.target.value)}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Educational Theme</Label>
+              <div className="grid grid-cols-2 gap-2">
+                {EDUCATIONAL_THEMES.map((theme) => (
+                  <Button
+                    key={theme}
+                    variant={formData.educational_theme === theme ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => handleEducationalThemeChange(theme)}
+                    className="text-xs"
+                  >
+                    {theme}
+                  </Button>
+                ))}
               </div>
+            </div>
+          </CardContent>
+        </Card>
 
-              {/* Auto-generated Title */}
-              {formData.storyDescription.length > 20 && (
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <Label>Story Title</Label>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={handleGenerateTitle}
-                      disabled={isGeneratingTitle}
-                      className="text-xs"
-                    >
-                      {isGeneratingTitle ? (
-                        <>
-                          <div className="animate-spin rounded-full h-3 w-3 border-b border-current mr-1"></div>
-                          Generating...
-                        </>
-                      ) : (
-                        <>
-                          <Wand2 className="h-3 w-3 mr-1" />
-                          Generate Title
-                        </>
-                      )}
-                    </Button>
-                  </div>
-                  
-                  {(formData.autoGeneratedTitle || formData.customTitle) && (
-                    <div className="p-4 bg-purple-50 rounded-lg border border-purple-200">
-                      {isEditingTitle ? (
-                        <div className="flex space-x-2">
-                          <Input
-                            value={customTitle}
-                            onChange={(e) => setCustomTitle(e.target.value)}
-                            className="flex-1"
-                            placeholder="Enter custom title..."
-                          />
-                          <Button size="sm" onClick={handleTitleSave}>
-                            Save
-                          </Button>
-                          <Button size="sm" variant="outline" onClick={() => setIsEditingTitle(false)}>
-                            Cancel
-                          </Button>
-                        </div>
-                      ) : (
-                        <div className="flex items-center justify-between">
-                          <h4 className="text-lg font-semibold text-purple-900">
-                            {formData.customTitle || formData.autoGeneratedTitle}
-                          </h4>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={handleTitleEdit}
-                            className="text-purple-600 hover:text-purple-700"
-                          >
-                            <Edit3 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-              )}
-            </CardContent>
-          </Card>
+        {/* Story Elements */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Lightbulb className="h-5 w-5 text-yellow-600" />
+              Special Elements
+            </CardTitle>
+            <CardDescription>
+              Add specific things you'd like to include in your story
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="custom-element">Add Custom Element</Label>
+              <div className="flex gap-2">
+                <Input
+                  id="custom-element"
+                  placeholder="e.g., talking animals, magic wand, castle..."
+                  value={customElement}
+                  onChange={(e) => setCustomElement(e.target.value)}
+                  onKeyPress={(e) => e.key === 'Enter' && addCustomElement()}
+                />
+                <Button onClick={addCustomElement} size="sm">
+                  Add
+                </Button>
+              </div>
+            </div>
 
-          {/* Story Configuration */}
-          <div className="grid md:grid-cols-2 gap-6">
-            {/* Story Length */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center space-x-2 text-lg">
-                  <Clock className="h-5 w-5 text-blue-600" />
-                  <span>Story Length</span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  {STORY_LENGTHS.map((length) => (
-                    <div
-                      key={length.pages}
-                      className={`p-3 rounded-lg border-2 cursor-pointer transition-all ${
-                        formData.storyLength.pages === length.pages
-                          ? 'border-blue-500 bg-blue-50'
-                          : 'border-gray-200 hover:border-gray-300'
-                      }`}
-                      onClick={() => onUpdate({ storyLength: { pages: length.pages, scenes: length.scenes } })}
-                    >
-                      <div className="flex justify-between items-center">
-                        <div>
-                          <p className="font-medium">{length.label}</p>
-                          <p className="text-sm text-gray-600">{length.description}</p>
-                        </div>
-                        <Badge variant="outline">{length.pages} pages</Badge>
-                      </div>
-                    </div>
+            {formData.specific_elements && formData.specific_elements.length > 0 && (
+              <div className="space-y-2">
+                <Label>Your Story Elements</Label>
+                <div className="flex flex-wrap gap-2">
+                  {formData.specific_elements.map((element, index) => (
+                    <Badge key={index} variant="secondary" className="flex items-center gap-1">
+                      {element}
+                      <button
+                        onClick={() => removeElement(index)}
+                        className="ml-1 hover:text-red-500"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </Badge>
                   ))}
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
 
-            {/* Age Group */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center space-x-2 text-lg">
-                  <Users className="h-5 w-5 text-green-600" />
-                  <span>Target Age</span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <Select
-                  value={formData.targetAgeGroup}
-                  onValueChange={(value: 'toddlers' | 'elementary' | 'preteens') => 
-                    onUpdate({ targetAgeGroup: value })
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="toddlers">Toddlers (2-4 years)</SelectItem>
-                    <SelectItem value="elementary">Elementary (5-10 years)</SelectItem>
-                    <SelectItem value="preteens">Pre-teens (11-13 years)</SelectItem>
-                  </SelectContent>
-                </Select>
-              </CardContent>
-            </Card>
+      {/* Story Prompts */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Need Inspiration?</CardTitle>
+          <CardDescription>
+            Click on any of these story ideas to get started
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid gap-2 md:grid-cols-2">
+            {STORY_PROMPTS.map((prompt, index) => (
+              <Button
+                key={index}
+                variant="ghost"
+                className="justify-start text-left h-auto p-3"
+                onClick={() => usePrompt(prompt)}
+              >
+                <Lightbulb className="h-4 w-4 mr-2 text-yellow-500 flex-shrink-0" />
+                <span className="text-sm">{prompt}</span>
+              </Button>
+            ))}
           </div>
+        </CardContent>
+      </Card>
 
-          {/* Educational Theme */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <Lightbulb className="h-5 w-5 text-yellow-600" />
-                <span>Educational Theme</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                {EDUCATIONAL_THEMES.map((theme) => {
-                  const Icon = theme.icon
-                  return (
-                    <div
-                      key={theme.id}
-                      className={`p-3 rounded-lg border-2 cursor-pointer transition-all text-center ${
-                        formData.educationalTheme === theme.id
-                          ? 'border-purple-500 bg-purple-50'
-                          : 'border-gray-200 hover:border-gray-300'
-                      }`}
-                      onClick={() => onUpdate({ educationalTheme: theme.id })}
-                    >
-                      <div className={`inline-flex p-2 rounded-full mb-2 ${theme.color}`}>
-                        <Icon className="h-4 w-4" />
-                      </div>
-                      <p className="text-sm font-medium">{theme.label}</p>
-                    </div>
-                  )
-                })}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Sidebar */}
-        <div className="space-y-6">
-          {/* Story Starters */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2 text-lg">
-                <Sparkles className="h-5 w-5 text-purple-600" />
-                <span>Story Starters</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {STORY_STARTERS.map((starter, index) => (
-                <div
-                  key={index}
-                  className="p-3 bg-gradient-to-r from-purple-50 to-pink-50 rounded-lg border border-purple-200 cursor-pointer hover:shadow-md transition-all"
-                  onClick={() => handleStoryStarterClick(starter)}
-                >
-                  <p className="text-sm text-gray-700 italic">"{starter}"</p>
-                </div>
-              ))}
-            </CardContent>
-          </Card>
-
-          {/* Auto-save Status */}
-          <Card className="bg-green-50 border-green-200">
-            <CardContent className="p-4">
-              <div className="flex items-center space-x-2">
-                <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
-                <p className="text-sm text-green-800">
-                  <strong>Auto-saving:</strong> Your progress is automatically saved
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Tips */}
-          <Card className="bg-blue-50 border-blue-200">
-            <CardHeader>
-              <CardTitle className="text-lg text-blue-900">💡 Tips for Great Stories</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              <p className="text-sm text-blue-800">• Include your child's favorite activities</p>
-              <p className="text-sm text-blue-800">• Add familiar places or characters</p>
-              <p className="text-sm text-blue-800">• Think about what lesson you'd like to share</p>
-              <p className="text-sm text-blue-800">• Don't worry about perfect grammar - be creative!</p>
-            </CardContent>
-          </Card>
-        </div>
+      {/* Navigation */}
+      <div className="flex justify-end">
+        <Button 
+          onClick={onNext}
+          disabled={!canProceed}
+          className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
+        >
+          Continue to Art Style
+        </Button>
       </div>
     </div>
   )

@@ -1,402 +1,442 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
+import { Label } from '@/components/ui/label'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Film, Plus, Edit3, Trash2, Wand2, RefreshCw, ChevronUp, ChevronDown, Users, ImageIcon } from 'lucide-react'
-import { generateScenes } from '@/lib/ai-services'
-import type { Scene, Character } from '@/app/create/page'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Film, Plus, Edit, Trash2, ArrowUp, ArrowDown, Wand2, Sparkles } from 'lucide-react'
+import type { StoryFormData, Scene } from '@/app/create/page'
 
 interface SceneManagementStepProps {
-  scenes: Scene[]
-  characters: Character[]
-  storyDescription: string
-  onScenesUpdate: (scenes: Scene[]) => void
+  formData: StoryFormData
+  updateFormData: (updates: Partial<StoryFormData>) => void
+  onNext: () => void
+  onPrev: () => void
 }
 
-export function SceneManagementStep({ 
-  scenes, 
-  characters, 
-  storyDescription, 
-  onScenesUpdate 
-}: SceneManagementStepProps) {
-  const [isGenerating, setIsGenerating] = useState(false)
+const SCENE_MOODS = [
+  'Happy', 'Exciting', 'Mysterious', 'Peaceful', 'Adventurous', 
+  'Magical', 'Suspenseful', 'Heartwarming', 'Dramatic', 'Playful'
+]
+
+export function SceneManagementStep({ formData, updateFormData, onNext, onPrev }: SceneManagementStepProps) {
+  const [isAddingScene, setIsAddingScene] = useState(false)
   const [editingScene, setEditingScene] = useState<string | null>(null)
   const [newScene, setNewScene] = useState<Partial<Scene>>({
     title: '',
     description: '',
-    characters: []
+    setting: '',
+    mood: 'Happy',
+    keyEvents: [],
+    characters: [],
+    narration: ''
   })
 
-  useEffect(() => {
-    if (scenes.length === 0 && storyDescription.length > 50 && characters.length > 0) {
-      handleGenerateScenes()
-    }
-  }, [storyDescription, characters])
-
-  const handleGenerateScenes = async () => {
-    if (!storyDescription.trim() || characters.length === 0) return
-    
-    setIsGenerating(true)
-    try {
-      const generatedScenes = await generateScenes(storyDescription, characters, 8)
-      const newScenes: Scene[] = generatedScenes.map((scene, index) => ({
-        id: `scene-${Date.now()}-${index}`,
-        title: scene.title,
-        description: scene.description,
-        characters: scene.characters,
-        imageUrl: '/placeholder_image.png',
-        order: index + 1
-      }))
-      onScenesUpdate([...scenes, ...newScenes])
-    } catch (error) {
-      console.error('Scene generation failed:', error)
-    } finally {
-      setIsGenerating(false)
-    }
-  }
-
   const handleAddScene = () => {
-    if (!newScene.title?.trim()) return
+    if (newScene.title && newScene.description) {
+      const scene: Scene = {
+        id: `scene-${Date.now()}`,
+        title: newScene.title,
+        description: newScene.description || '',
+        setting: newScene.setting || '',
+        mood: newScene.mood || 'Happy',
+        keyEvents: newScene.keyEvents || [],
+        characters: newScene.characters || [],
+        imagePrompt: `${newScene.setting} scene with ${newScene.mood.toLowerCase()} mood`,
+        narration: newScene.narration || newScene.description || '',
+        order: (formData.scenes?.length || 0) + 1
+      }
 
-    const scene: Scene = {
-      id: `scene-${Date.now()}`,
-      title: newScene.title,
-      description: newScene.description || '',
-      characters: newScene.characters || [],
-      imageUrl: '/placeholder_image.png',
-      order: scenes.length + 1
+      updateFormData({
+        scenes: [...(formData.scenes || []), scene]
+      })
+
+      setNewScene({
+        title: '',
+        description: '',
+        setting: '',
+        mood: 'Happy',
+        keyEvents: [],
+        characters: [],
+        narration: ''
+      })
+      setIsAddingScene(false)
     }
-
-    onScenesUpdate([...scenes, scene])
-    setNewScene({
-      title: '',
-      description: '',
-      characters: []
-    })
   }
 
-  const handleUpdateScene = (id: string, updates: Partial<Scene>) => {
-    const updatedScenes = scenes.map(scene =>
-      scene.id === id ? { ...scene, ...updates } : scene
-    )
-    onScenesUpdate(updatedScenes)
+  const handleEditScene = (sceneId: string) => {
+    const scene = formData.scenes?.find(s => s.id === sceneId)
+    if (scene) {
+      setNewScene(scene)
+      setEditingScene(sceneId)
+      setIsAddingScene(true)
+    }
   }
 
-  const handleDeleteScene = (id: string) => {
-    const filteredScenes = scenes.filter(scene => scene.id !== id)
+  const handleUpdateScene = () => {
+    if (editingScene && newScene.title && newScene.description) {
+      const updatedScenes = formData.scenes?.map(scene =>
+        scene.id === editingScene
+          ? {
+              ...scene,
+              title: newScene.title!,
+              description: newScene.description!,
+              setting: newScene.setting || '',
+              mood: newScene.mood || 'Happy',
+              keyEvents: newScene.keyEvents || [],
+              characters: newScene.characters || [],
+              narration: newScene.narration || newScene.description || ''
+            }
+          : scene
+      ) || []
+
+      updateFormData({ scenes: updatedScenes })
+      setNewScene({
+        title: '',
+        description: '',
+        setting: '',
+        mood: 'Happy',
+        keyEvents: [],
+        characters: [],
+        narration: ''
+      })
+      setIsAddingScene(false)
+      setEditingScene(null)
+    }
+  }
+
+  const handleDeleteScene = (sceneId: string) => {
+    const updatedScenes = formData.scenes?.filter(scene => scene.id !== sceneId) || []
     // Reorder remaining scenes
-    const reorderedScenes = filteredScenes.map((scene, index) => ({
+    const reorderedScenes = updatedScenes.map((scene, index) => ({
       ...scene,
       order: index + 1
     }))
-    onScenesUpdate(reorderedScenes)
+    updateFormData({ scenes: reorderedScenes })
   }
 
-  const handleMoveScene = (id: string, direction: 'up' | 'down') => {
-    const sceneIndex = scenes.findIndex(scene => scene.id === id)
+  const handleMoveScene = (sceneId: string, direction: 'up' | 'down') => {
+    const scenes = formData.scenes || []
+    const sceneIndex = scenes.findIndex(s => s.id === sceneId)
+    
     if (sceneIndex === -1) return
-
+    
+    const newIndex = direction === 'up' ? sceneIndex - 1 : sceneIndex + 1
+    
+    if (newIndex < 0 || newIndex >= scenes.length) return
+    
     const newScenes = [...scenes]
-    const targetIndex = direction === 'up' ? sceneIndex - 1 : sceneIndex + 1
-
-    if (targetIndex < 0 || targetIndex >= scenes.length) return
-
-    // Swap scenes
-    [newScenes[sceneIndex], newScenes[targetIndex]] = [newScenes[targetIndex], newScenes[sceneIndex]]
+    const [movedScene] = newScenes.splice(sceneIndex, 1)
+    newScenes.splice(newIndex, 0, movedScene)
     
     // Update order numbers
     const reorderedScenes = newScenes.map((scene, index) => ({
       ...scene,
       order: index + 1
     }))
-
-    onScenesUpdate(reorderedScenes)
+    
+    updateFormData({ scenes: reorderedScenes })
   }
 
-  const handleRegenerateImage = (id: string) => {
-    // In production, this would call an image generation API
-    handleUpdateScene(id, { 
-      imageUrl: `/placeholder_image.png?t=${Date.now()}` 
+  const handleGenerateScenes = () => {
+    // Mock AI scene generation
+    const generatedScenes: Scene[] = [
+      {
+        id: `generated-${Date.now()}-1`,
+        title: 'The Beginning',
+        description: 'Our story starts in a familiar place where adventure awaits',
+        setting: 'Home/Starting location',
+        mood: 'Peaceful',
+        keyEvents: ['Introduction', 'Call to adventure'],
+        characters: [],
+        imagePrompt: 'Peaceful home setting with adventure beginning',
+        narration: 'Once upon a time, in a cozy little house, our adventure was about to begin...',
+        order: 1
+      },
+      {
+        id: `generated-${Date.now()}-2`,
+        title: 'The Challenge',
+        description: 'A problem or challenge appears that needs to be solved',
+        setting: 'Adventure location',
+        mood: 'Exciting',
+        keyEvents: ['Problem introduced', 'Decision to help'],
+        characters: [],
+        imagePrompt: 'Exciting adventure location with challenge',
+        narration: 'Suddenly, a challenge appeared that would test our hero\'s courage and kindness...',
+        order: 2
+      },
+      {
+        id: `generated-${Date.now()}-3`,
+        title: 'The Resolution',
+        description: 'The challenge is overcome through wisdom and friendship',
+        setting: 'Resolution location',
+        mood: 'Heartwarming',
+        keyEvents: ['Problem solved', 'Lesson learned'],
+        characters: [],
+        imagePrompt: 'Heartwarming resolution scene',
+        narration: 'With kindness and determination, our hero found the perfect solution...',
+        order: 3
+      }
+    ]
+
+    updateFormData({
+      generatedScenes: generatedScenes
     })
   }
 
-  const toggleCharacterInScene = (sceneId: string, characterName: string) => {
-    const scene = scenes.find(s => s.id === sceneId)
-    if (!scene) return
-
-    const newCharacters = scene.characters.includes(characterName)
-      ? scene.characters.filter(c => c !== characterName)
-      : [...scene.characters, characterName]
-
-    handleUpdateScene(sceneId, { characters: newCharacters })
-  }
-
-  const sortedScenes = [...scenes].sort((a, b) => a.order - b.order)
+  const allScenes = [...(formData.scenes || []), ...(formData.generatedScenes || [])]
+    .sort((a, b) => a.order - b.order)
+  const canProceed = allScenes.length > 0
 
   return (
-    <div className="space-y-8">
-      {/* Header */}
-      <div className="text-center">
-        <h3 className="text-2xl font-bold text-gray-900 mb-2">
-          Organize your story scenes
-        </h3>
+    <div className="max-w-4xl mx-auto space-y-8">
+      <div className="text-center space-y-2">
+        <h2 className="text-3xl font-bold text-gray-900">Organize Your Scenes</h2>
         <p className="text-gray-600">
-          AI has broken down your story into scenes. You can edit, reorder, or add new ones!
+          Structure your story by adding scenes or let AI generate them for you
         </p>
       </div>
 
-      {/* Generate Scenes Button */}
-      {scenes.length === 0 && (
-        <div className="text-center">
-          <Button
-            onClick={handleGenerateScenes}
-            disabled={isGenerating || !storyDescription.trim() || characters.length === 0}
-            size="lg"
-            className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
-          >
-            {isGenerating ? (
-              <>
-                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
-                Creating Scenes...
-              </>
-            ) : (
-              <>
-                <Wand2 className="h-5 w-5 mr-2" />
-                Generate Story Scenes
-              </>
-            )}
-          </Button>
-          {characters.length === 0 && (
-            <p className="text-sm text-gray-500 mt-2">
-              Please add characters first to generate scenes
-            </p>
-          )}
-        </div>
-      )}
-
-      {/* Scenes List */}
-      {sortedScenes.length > 0 && (
-        <div className="space-y-4">
-          {sortedScenes.map((scene, index) => (
-            <Card key={scene.id} className="overflow-hidden">
-              <div className="flex">
-                {/* Scene Image */}
-                <div className="w-48 flex-shrink-0 relative">
-                  <div className="aspect-video bg-gradient-to-br from-purple-100 to-pink-100 flex items-center justify-center">
-                    <img
-                      src={scene.imageUrl || "/placeholder.svg"}
-                      alt={scene.title}
-                      className="w-full h-full object-cover"
-                    />
-                    <Button
-                      variant="secondary"
-                      size="sm"
-                      className="absolute top-2 right-2"
-                      onClick={() => handleRegenerateImage(scene.id)}
-                    >
-                      <RefreshCw className="h-3 w-3" />
-                    </Button>
-                  </div>
-                  <div className="absolute top-2 left-2 bg-white rounded-full w-8 h-8 flex items-center justify-center font-bold text-sm">
-                    {scene.order}
-                  </div>
-                </div>
-
-                {/* Scene Content */}
-                <div className="flex-1 p-4">
-                  {editingScene === scene.id ? (
-                    <div className="space-y-4">
-                      <Input
-                        value={scene.title}
-                        onChange={(e) => handleUpdateScene(scene.id, { title: e.target.value })}
-                        placeholder="Scene title"
-                      />
-                      <Textarea
-                        value={scene.description}
-                        onChange={(e) => handleUpdateScene(scene.id, { description: e.target.value })}
-                        placeholder="Scene description"
-                        rows={3}
-                      />
-                      
-                      {/* Character Selection */}
-                      <div>
-                        <label className="text-sm font-medium text-gray-700 mb-2 block">
-                          Characters in this scene:
-                        </label>
-                        <div className="flex flex-wrap gap-2">
-                          {characters.map((character) => (
-                            <Badge
-                              key={character.name}
-                              variant={scene.characters.includes(character.name) ? "default" : "outline"}
-                              className="cursor-pointer"
-                              onClick={() => toggleCharacterInScene(scene.id, character.name)}
-                            >
-                              {character.name}
-                            </Badge>
-                          ))}
-                        </div>
-                      </div>
-
-                      <div className="flex space-x-2">
-                        <Button
-                          size="sm"
-                          onClick={() => setEditingScene(null)}
-                        >
-                          Save
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => setEditingScene(null)}
-                        >
-                          Cancel
-                        </Button>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="space-y-3">
-                      <div className="flex items-center justify-between">
-                        <h4 className="font-semibold text-lg">{scene.title}</h4>
-                        <div className="flex items-center space-x-1">
-                          {/* Move buttons */}
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleMoveScene(scene.id, 'up')}
-                            disabled={index === 0}
-                          >
-                            <ChevronUp className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleMoveScene(scene.id, 'down')}
-                            disabled={index === sortedScenes.length - 1}
-                          >
-                            <ChevronDown className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => setEditingScene(scene.id)}
-                          >
-                            <Edit3 className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleDeleteScene(scene.id)}
-                            className="text-red-600 hover:text-red-700"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </div>
-
-                      <p className="text-gray-600 text-sm">{scene.description}</p>
-
-                      {/* Characters in scene */}
-                      {scene.characters.length > 0 && (
-                        <div className="flex items-center space-x-2">
-                          <Users className="h-4 w-4 text-gray-400" />
-                          <div className="flex flex-wrap gap-1">
-                            {scene.characters.map((characterName) => (
-                              <Badge key={characterName} variant="secondary" className="text-xs">
-                                {characterName}
-                              </Badge>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-              </div>
-            </Card>
-          ))}
-        </div>
-      )}
-
-      {/* Add New Scene */}
-      <Card className="border-dashed border-2 border-gray-300">
+      {/* AI Scene Generation */}
+      <Card className="bg-gradient-to-r from-green-50 to-blue-50 border-green-200">
         <CardHeader>
-          <CardTitle className="flex items-center space-x-2 text-gray-600">
-            <Plus className="h-5 w-5" />
-            <span>Add New Scene</span>
+          <CardTitle className="flex items-center gap-2">
+            <Wand2 className="h-5 w-5 text-green-600" />
+            AI Scene Generation
           </CardTitle>
+          <CardDescription>
+            Let AI create a story structure based on your description and characters
+          </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <Input
-            placeholder="Scene title"
-            value={newScene.title || ''}
-            onChange={(e) => setNewScene({ ...newScene, title: e.target.value })}
-          />
-          <Textarea
-            placeholder="Describe what happens in this scene..."
-            value={newScene.description || ''}
-            onChange={(e) => setNewScene({ ...newScene, description: e.target.value })}
-            rows={3}
-          />
-          <div>
-            <label className="text-sm font-medium text-gray-700 mb-2 block">
-              Characters in this scene:
-            </label>
-            <div className="flex flex-wrap gap-2">
-              {characters.map((character) => (
-                <Badge
-                  key={character.name}
-                  variant={newScene.characters?.includes(character.name) ? "default" : "outline"}
-                  className="cursor-pointer"
-                  onClick={() => {
-                    const currentChars = newScene.characters || []
-                    const newChars = currentChars.includes(character.name)
-                      ? currentChars.filter(c => c !== character.name)
-                      : [...currentChars, character.name]
-                    setNewScene({ ...newScene, characters: newChars })
-                  }}
-                >
-                  {character.name}
-                </Badge>
-              ))}
-            </div>
-          </div>
-          <Button
-            onClick={handleAddScene}
-            disabled={!newScene.title?.trim()}
-            className="w-full"
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            Add Scene
+        <CardContent>
+          <Button onClick={handleGenerateScenes} className="bg-green-600 hover:bg-green-700">
+            <Sparkles className="h-4 w-4 mr-2" />
+            Generate Story Scenes
           </Button>
         </CardContent>
       </Card>
 
-      {/* Re-generate Button */}
-      {scenes.length > 0 && (
-        <div className="text-center">
+      {/* Scene List */}
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <h3 className="text-xl font-semibold text-gray-900 flex items-center gap-2">
+            <Film className="h-5 w-5" />
+            Your Scenes ({allScenes.length})
+          </h3>
           <Button
-            variant="outline"
-            onClick={handleGenerateScenes}
-            disabled={isGenerating}
+            onClick={() => setIsAddingScene(true)}
+            className="bg-purple-600 hover:bg-purple-700"
           >
-            {isGenerating ? (
-              <>
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current mr-2"></div>
-                Generating More Scenes...
-              </>
-            ) : (
-              <>
-                <Wand2 className="h-4 w-4 mr-2" />
-                Generate More Scenes
-              </>
-            )}
+            <Plus className="h-4 w-4 mr-2" />
+            Add Scene
           </Button>
         </div>
+
+        <div className="space-y-4">
+          {allScenes.map((scene, index) => (
+            <Card key={scene.id} className="relative">
+              <CardHeader className="pb-3">
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Badge variant="outline" className="bg-blue-50 text-blue-700">
+                        Scene {scene.order}
+                      </Badge>
+                      <Badge variant="secondary" className="bg-purple-50 text-purple-700">
+                        {scene.mood}
+                      </Badge>
+                    </div>
+                    <CardTitle className="text-lg">{scene.title}</CardTitle>
+                    <CardDescription className="mt-1">{scene.description}</CardDescription>
+                  </div>
+                  <div className="flex gap-1 ml-4">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleMoveScene(scene.id, 'up')}
+                      disabled={index === 0}
+                    >
+                      <ArrowUp className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleMoveScene(scene.id, 'down')}
+                      disabled={index === allScenes.length - 1}
+                    >
+                      <ArrowDown className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleEditScene(scene.id)}
+                    >
+                      <Edit className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleDeleteScene(scene.id)}
+                      className="text-red-600 hover:text-red-700"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className="pt-0">
+                {scene.setting && (
+                  <p className="text-sm text-gray-600 mb-2">
+                    <strong>Setting:</strong> {scene.setting}
+                  </p>
+                )}
+                {scene.keyEvents && scene.keyEvents.length > 0 && (
+                  <div className="flex flex-wrap gap-1">
+                    {scene.keyEvents.map((event, eventIndex) => (
+                      <Badge key={eventIndex} variant="outline" className="text-xs">
+                        {event}
+                      </Badge>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+
+        {allScenes.length === 0 && (
+          <Card className="border-dashed border-2 border-gray-300">
+            <CardContent className="flex flex-col items-center justify-center py-12">
+              <Film className="h-12 w-12 text-gray-400 mb-4" />
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">No Scenes Yet</h3>
+              <p className="text-gray-600 text-center mb-4">
+                Add scenes manually or use AI to generate a story structure
+              </p>
+              <Button onClick={() => setIsAddingScene(true)}>
+                <Plus className="h-4 w-4 mr-2" />
+                Add Your First Scene
+              </Button>
+            </CardContent>
+          </Card>
+        )}
+      </div>
+
+      {/* Add/Edit Scene Form */}
+      {isAddingScene && (
+        <Card className="border-purple-200 bg-purple-50">
+          <CardHeader>
+            <CardTitle>
+              {editingScene ? 'Edit Scene' : 'Add New Scene'}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="scene-title">Scene Title</Label>
+                <Input
+                  id="scene-title"
+                  value={newScene.title || ''}
+                  onChange={(e) => setNewScene({ ...newScene, title: e.target.value })}
+                  placeholder="Enter scene title"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="scene-mood">Mood</Label>
+                <Select
+                  value={newScene.mood}
+                  onValueChange={(value) => setNewScene({ ...newScene, mood: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {SCENE_MOODS.map((mood) => (
+                      <SelectItem key={mood} value={mood}>
+                        {mood}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="scene-description">Scene Description</Label>
+              <Textarea
+                id="scene-description"
+                value={newScene.description || ''}
+                onChange={(e) => setNewScene({ ...newScene, description: e.target.value })}
+                placeholder="Describe what happens in this scene"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="scene-setting">Setting (Optional)</Label>
+              <Input
+                id="scene-setting"
+                value={newScene.setting || ''}
+                onChange={(e) => setNewScene({ ...newScene, setting: e.target.value })}
+                placeholder="Where does this scene take place?"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="scene-narration">Narration Text (Optional)</Label>
+              <Textarea
+                id="scene-narration"
+                value={newScene.narration || ''}
+                onChange={(e) => setNewScene({ ...newScene, narration: e.target.value })}
+                placeholder="The actual text that will be read in this scene"
+              />
+            </div>
+
+            <div className="flex gap-2">
+              <Button
+                onClick={editingScene ? handleUpdateScene : handleAddScene}
+                disabled={!newScene.title || !newScene.description}
+              >
+                {editingScene ? 'Update Scene' : 'Add Scene'}
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setIsAddingScene(false)
+                  setEditingScene(null)
+                  setNewScene({
+                    title: '',
+                    description: '',
+                    setting: '',
+                    mood: 'Happy',
+                    keyEvents: [],
+                    characters: [],
+                    narration: ''
+                  })
+                }}
+              >
+                Cancel
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
       )}
+
+      {/* Navigation */}
+      <div className="flex justify-between">
+        <Button variant="outline" onClick={onPrev}>
+          Back to Characters
+        </Button>
+        <Button 
+          onClick={onNext}
+          disabled={!canProceed}
+          className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
+        >
+          Continue to Review
+        </Button>
+      </div>
     </div>
   )
 }

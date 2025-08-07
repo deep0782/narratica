@@ -1,396 +1,319 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
-import { Badge } from '@/components/ui/badge'
 import { Label } from '@/components/ui/label'
-import { Users, Plus, Edit3, Trash2, Wand2, RefreshCw, User, Sparkles, Heart } from 'lucide-react'
-import { extractCharacters } from '@/lib/ai-services'
-import type { Character } from '@/app/create/page'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Users, Plus, Edit, Trash2, Sparkles, Wand2 } from 'lucide-react'
+import type { StoryFormData, Character } from '@/app/create/page'
 
 interface CharacterManagementStepProps {
-  characters: Character[]
-  storyDescription: string
-  onCharactersUpdate: (characters: Character[]) => void
+  formData: StoryFormData
+  updateFormData: (updates: Partial<StoryFormData>) => void
+  onNext: () => void
+  onPrev: () => void
 }
 
-const CHARACTER_TRAITS = [
-  'brave', 'kind', 'funny', 'smart', 'creative', 'helpful', 'curious', 'adventurous',
-  'gentle', 'loyal', 'cheerful', 'wise', 'magical', 'strong', 'caring', 'playful'
-]
-
-const HAIR_COLORS = ['brown', 'blonde', 'black', 'red', 'gray', 'white', 'colorful']
-const CLOTHING_OPTIONS = ['casual', 'formal', 'magical robes', 'adventure gear', 'royal attire', 'simple clothes']
-
-export function CharacterManagementStep({ 
-  characters, 
-  storyDescription, 
-  onCharactersUpdate 
-}: CharacterManagementStepProps) {
-  const [isExtracting, setIsExtracting] = useState(false)
+export function CharacterManagementStep({ formData, updateFormData, onNext, onPrev }: CharacterManagementStepProps) {
+  const [isAddingCharacter, setIsAddingCharacter] = useState(false)
   const [editingCharacter, setEditingCharacter] = useState<string | null>(null)
   const [newCharacter, setNewCharacter] = useState<Partial<Character>>({
     name: '',
     description: '',
-    traits: [],
-    relationships: [],
-    appearance: {}
+    appearance: '',
+    role: 'supporting'
   })
 
-  useEffect(() => {
-    if (characters.length === 0 && storyDescription.length > 50) {
-      handleExtractCharacters()
-    }
-  }, [storyDescription])
-
-  const handleExtractCharacters = async () => {
-    if (!storyDescription.trim()) return
-    
-    setIsExtracting(true)
-    try {
-      const extractedChars = await extractCharacters(storyDescription)
-      const newCharacters: Character[] = extractedChars.map((char, index) => ({
-        id: `char-${Date.now()}-${index}`,
-        name: char.name,
-        description: char.description,
-        traits: char.traits,
-        relationships: char.relationships,
-        imageUrl: '/placeholder_image.png',
-        appearance: {
-          hairColor: HAIR_COLORS[Math.floor(Math.random() * HAIR_COLORS.length)],
-          clothing: CLOTHING_OPTIONS[Math.floor(Math.random() * CLOTHING_OPTIONS.length)],
-          physicalTraits: []
-        }
-      }))
-      onCharactersUpdate([...characters, ...newCharacters])
-    } catch (error) {
-      console.error('Character extraction failed:', error)
-    } finally {
-      setIsExtracting(false)
-    }
-  }
-
   const handleAddCharacter = () => {
-    if (!newCharacter.name?.trim()) return
+    if (newCharacter.name && newCharacter.description) {
+      const character: Character = {
+        id: `char-${Date.now()}`,
+        name: newCharacter.name,
+        description: newCharacter.description || '',
+        appearance: newCharacter.appearance || '',
+        role: newCharacter.role as 'main' | 'supporting' | 'minor',
+        isChildCharacter: false
+      }
 
-    const character: Character = {
-      id: `char-${Date.now()}`,
-      name: newCharacter.name,
-      description: newCharacter.description || '',
-      traits: newCharacter.traits || [],
-      relationships: newCharacter.relationships || [],
-      imageUrl: '/placeholder_image.png',
-      appearance: newCharacter.appearance || {}
+      updateFormData({
+        characters: [...(formData.characters || []), character]
+      })
+
+      setNewCharacter({ name: '', description: '', appearance: '', role: 'supporting' })
+      setIsAddingCharacter(false)
     }
+  }
 
-    onCharactersUpdate([...characters, character])
-    setNewCharacter({
-      name: '',
-      description: '',
-      traits: [],
-      relationships: [],
-      appearance: {}
+  const handleEditCharacter = (characterId: string) => {
+    const character = formData.characters?.find(c => c.id === characterId)
+    if (character) {
+      setNewCharacter(character)
+      setEditingCharacter(characterId)
+      setIsAddingCharacter(true)
+    }
+  }
+
+  const handleUpdateCharacter = () => {
+    if (editingCharacter && newCharacter.name && newCharacter.description) {
+      const updatedCharacters = formData.characters?.map(char =>
+        char.id === editingCharacter
+          ? {
+              ...char,
+              name: newCharacter.name!,
+              description: newCharacter.description!,
+              appearance: newCharacter.appearance || '',
+              role: newCharacter.role as 'main' | 'supporting' | 'minor'
+            }
+          : char
+      ) || []
+
+      updateFormData({ characters: updatedCharacters })
+      setNewCharacter({ name: '', description: '', appearance: '', role: 'supporting' })
+      setIsAddingCharacter(false)
+      setEditingCharacter(null)
+    }
+  }
+
+  const handleDeleteCharacter = (characterId: string) => {
+    const updatedCharacters = formData.characters?.filter(char => char.id !== characterId) || []
+    updateFormData({ characters: updatedCharacters })
+  }
+
+  const handleExtractCharacters = () => {
+    // Mock AI character extraction
+    const extractedCharacters: Character[] = [
+      {
+        id: `extracted-${Date.now()}-1`,
+        name: formData.child_name || 'Hero',
+        description: 'The brave main character of our story',
+        appearance: 'Curious and adventurous',
+        role: 'main',
+        isChildCharacter: true
+      },
+      {
+        id: `extracted-${Date.now()}-2`,
+        name: 'Wise Owl',
+        description: 'A helpful guide who provides wisdom and advice',
+        appearance: 'Large brown owl with golden eyes',
+        role: 'supporting',
+        isChildCharacter: false
+      }
+    ]
+
+    updateFormData({
+      extractedCharacters: extractedCharacters
     })
   }
 
-  const handleUpdateCharacter = (id: string, updates: Partial<Character>) => {
-    const updatedCharacters = characters.map(char =>
-      char.id === id ? { ...char, ...updates } : char
-    )
-    onCharactersUpdate(updatedCharacters)
-  }
-
-  const handleDeleteCharacter = (id: string) => {
-    onCharactersUpdate(characters.filter(char => char.id !== id))
-  }
-
-  const handleRegenerateImage = (id: string) => {
-    // In production, this would call an image generation API
-    handleUpdateCharacter(id, { 
-      imageUrl: `/placeholder_image.png?t=${Date.now()}` 
-    })
-  }
-
-  const toggleTrait = (characterId: string, trait: string) => {
-    const character = characters.find(c => c.id === characterId)
-    if (!character) return
-
-    const newTraits = character.traits.includes(trait)
-      ? character.traits.filter(t => t !== trait)
-      : [...character.traits, trait]
-
-    handleUpdateCharacter(characterId, { traits: newTraits })
-  }
+  const allCharacters = [...(formData.characters || []), ...(formData.extractedCharacters || [])]
+  const canProceed = allCharacters.length > 0
 
   return (
-    <div className="space-y-8">
-      {/* Header */}
-      <div className="text-center">
-        <h3 className="text-2xl font-bold text-gray-900 mb-2">
-          Meet your story characters
-        </h3>
+    <div className="max-w-4xl mx-auto space-y-8">
+      <div className="text-center space-y-2">
+        <h2 className="text-3xl font-bold text-gray-900">Manage Your Characters</h2>
         <p className="text-gray-600">
-          AI has found characters in your story. You can edit them or add new ones!
+          Add characters to your story or let AI extract them from your description
         </p>
       </div>
 
-      {/* Extract Characters Button */}
-      {characters.length === 0 && (
-        <div className="text-center">
+      {/* AI Character Extraction */}
+      <Card className="bg-gradient-to-r from-blue-50 to-purple-50 border-blue-200">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Wand2 className="h-5 w-5 text-blue-600" />
+            AI Character Detection
+          </CardTitle>
+          <CardDescription>
+            Let AI analyze your story description and suggest characters
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Button onClick={handleExtractCharacters} className="bg-blue-600 hover:bg-blue-700">
+            <Sparkles className="h-4 w-4 mr-2" />
+            Extract Characters from Story
+          </Button>
+        </CardContent>
+      </Card>
+
+      {/* Character List */}
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <h3 className="text-xl font-semibold text-gray-900 flex items-center gap-2">
+            <Users className="h-5 w-5" />
+            Your Characters ({allCharacters.length})
+          </h3>
           <Button
-            onClick={handleExtractCharacters}
-            disabled={isExtracting || !storyDescription.trim()}
-            size="lg"
-            className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
+            onClick={() => setIsAddingCharacter(true)}
+            className="bg-green-600 hover:bg-green-700"
           >
-            {isExtracting ? (
-              <>
-                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
-                Finding Characters...
-              </>
-            ) : (
-              <>
-                <Wand2 className="h-5 w-5 mr-2" />
-                Find Characters in Story
-              </>
-            )}
+            <Plus className="h-4 w-4 mr-2" />
+            Add Character
           </Button>
         </div>
-      )}
 
-      {/* Characters Grid */}
-      {characters.length > 0 && (
-        <div className="grid md:grid-cols-2 gap-6">
-          {characters.map((character) => (
-            <Card key={character.id} className="overflow-hidden">
-              <div className="relative">
-                <div className="aspect-video bg-gradient-to-br from-purple-100 to-pink-100 flex items-center justify-center">
-                  <img
-                    src={character.imageUrl || "/placeholder.svg"}
-                    alt={character.name}
-                    className="w-full h-full object-cover"
-                  />
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    className="absolute top-2 right-2"
-                    onClick={() => handleRegenerateImage(character.id)}
-                  >
-                    <RefreshCw className="h-4 w-4" />
-                  </Button>
+        <div className="grid gap-4 md:grid-cols-2">
+          {allCharacters.map((character) => (
+            <Card key={character.id} className="relative">
+              <CardHeader className="pb-3">
+                <div className="flex items-start justify-between">
+                  <div>
+                    <CardTitle className="text-lg">{character.name}</CardTitle>
+                    <div className="flex gap-2 mt-1">
+                      <Badge variant={character.role === 'main' ? 'default' : 'secondary'}>
+                        {character.role}
+                      </Badge>
+                      {character.isChildCharacter && (
+                        <Badge variant="outline" className="bg-yellow-50 text-yellow-700">
+                          Child Character
+                        </Badge>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex gap-1">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleEditCharacter(character.id)}
+                    >
+                      <Edit className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleDeleteCharacter(character.id)}
+                      className="text-red-600 hover:text-red-700"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </div>
-              </div>
-
-              <CardContent className="p-4">
-                {editingCharacter === character.id ? (
-                  <div className="space-y-4">
-                    <Input
-                      value={character.name}
-                      onChange={(e) => handleUpdateCharacter(character.id, { name: e.target.value })}
-                      placeholder="Character name"
-                    />
-                    <Textarea
-                      value={character.description}
-                      onChange={(e) => handleUpdateCharacter(character.id, { description: e.target.value })}
-                      placeholder="Character description"
-                      rows={3}
-                    />
-                    
-                    {/* Appearance */}
-                    <div className="grid grid-cols-2 gap-3">
-                      <div>
-                        <Label className="text-xs">Hair Color</Label>
-                        <select
-                          value={character.appearance.hairColor || ''}
-                          onChange={(e) => handleUpdateCharacter(character.id, {
-                            appearance: { ...character.appearance, hairColor: e.target.value }
-                          })}
-                          className="w-full p-2 border rounded text-sm"
-                        >
-                          <option value="">Select...</option>
-                          {HAIR_COLORS.map(color => (
-                            <option key={color} value={color}>{color}</option>
-                          ))}
-                        </select>
-                      </div>
-                      <div>
-                        <Label className="text-xs">Clothing</Label>
-                        <select
-                          value={character.appearance.clothing || ''}
-                          onChange={(e) => handleUpdateCharacter(character.id, {
-                            appearance: { ...character.appearance, clothing: e.target.value }
-                          })}
-                          className="w-full p-2 border rounded text-sm"
-                        >
-                          <option value="">Select...</option>
-                          {CLOTHING_OPTIONS.map(clothing => (
-                            <option key={clothing} value={clothing}>{clothing}</option>
-                          ))}
-                        </select>
-                      </div>
-                    </div>
-
-                    <div className="flex space-x-2">
-                      <Button
-                        size="sm"
-                        onClick={() => setEditingCharacter(null)}
-                      >
-                        Save
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => setEditingCharacter(null)}
-                      >
-                        Cancel
-                      </Button>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between">
-                      <h4 className="font-semibold text-lg">{character.name}</h4>
-                      <div className="flex space-x-1">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => setEditingCharacter(character.id)}
-                        >
-                          <Edit3 className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleDeleteCharacter(character.id)}
-                          className="text-red-600 hover:text-red-700"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </div>
-
-                    <p className="text-gray-600 text-sm">{character.description}</p>
-
-                    {/* Character Traits */}
-                    <div>
-                      <Label className="text-xs font-medium text-gray-500 mb-2 block">
-                        Character Traits
-                      </Label>
-                      <div className="flex flex-wrap gap-1 mb-2">
-                        {character.traits.map((trait) => (
-                          <Badge
-                            key={trait}
-                            variant="secondary"
-                            className="text-xs cursor-pointer hover:bg-red-100"
-                            onClick={() => toggleTrait(character.id, trait)}
-                          >
-                            {trait} ×
-                          </Badge>
-                        ))}
-                      </div>
-                      <div className="flex flex-wrap gap-1">
-                        {CHARACTER_TRAITS
-                          .filter(trait => !character.traits.includes(trait))
-                          .slice(0, 4)
-                          .map((trait) => (
-                            <Badge
-                              key={trait}
-                              variant="outline"
-                              className="text-xs cursor-pointer hover:bg-purple-50"
-                              onClick={() => toggleTrait(character.id, trait)}
-                            >
-                              + {trait}
-                            </Badge>
-                          ))}
-                      </div>
-                    </div>
-
-                    {/* Appearance */}
-                    {(character.appearance.hairColor || character.appearance.clothing) && (
-                      <div className="flex space-x-2">
-                        {character.appearance.hairColor && (
-                          <Badge variant="outline" className="text-xs">
-                            {character.appearance.hairColor} hair
-                          </Badge>
-                        )}
-                        {character.appearance.clothing && (
-                          <Badge variant="outline" className="text-xs">
-                            {character.appearance.clothing}
-                          </Badge>
-                        )}
-                      </div>
-                    )}
-                  </div>
+              </CardHeader>
+              <CardContent className="pt-0">
+                <p className="text-gray-700 text-sm mb-2">{character.description}</p>
+                {character.appearance && (
+                  <p className="text-gray-600 text-xs">
+                    <strong>Appearance:</strong> {character.appearance}
+                  </p>
                 )}
               </CardContent>
             </Card>
           ))}
         </div>
+
+        {allCharacters.length === 0 && (
+          <Card className="border-dashed border-2 border-gray-300">
+            <CardContent className="flex flex-col items-center justify-center py-12">
+              <Users className="h-12 w-12 text-gray-400 mb-4" />
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">No Characters Yet</h3>
+              <p className="text-gray-600 text-center mb-4">
+                Add characters manually or use AI to extract them from your story description
+              </p>
+              <Button onClick={() => setIsAddingCharacter(true)}>
+                <Plus className="h-4 w-4 mr-2" />
+                Add Your First Character
+              </Button>
+            </CardContent>
+          </Card>
+        )}
+      </div>
+
+      {/* Add/Edit Character Form */}
+      {isAddingCharacter && (
+        <Card className="border-purple-200 bg-purple-50">
+          <CardHeader>
+            <CardTitle>
+              {editingCharacter ? 'Edit Character' : 'Add New Character'}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="char-name">Character Name</Label>
+                <Input
+                  id="char-name"
+                  value={newCharacter.name || ''}
+                  onChange={(e) => setNewCharacter({ ...newCharacter, name: e.target.value })}
+                  placeholder="Enter character name"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="char-role">Role</Label>
+                <Select
+                  value={newCharacter.role}
+                  onValueChange={(value) => setNewCharacter({ ...newCharacter, role: value as 'main' | 'supporting' | 'minor' })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="main">Main Character</SelectItem>
+                    <SelectItem value="supporting">Supporting Character</SelectItem>
+                    <SelectItem value="minor">Minor Character</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="char-description">Description</Label>
+              <Textarea
+                id="char-description"
+                value={newCharacter.description || ''}
+                onChange={(e) => setNewCharacter({ ...newCharacter, description: e.target.value })}
+                placeholder="Describe the character's personality, background, and role in the story"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="char-appearance">Appearance (Optional)</Label>
+              <Input
+                id="char-appearance"
+                value={newCharacter.appearance || ''}
+                onChange={(e) => setNewCharacter({ ...newCharacter, appearance: e.target.value })}
+                placeholder="Describe how the character looks"
+              />
+            </div>
+
+            <div className="flex gap-2">
+              <Button
+                onClick={editingCharacter ? handleUpdateCharacter : handleAddCharacter}
+                disabled={!newCharacter.name || !newCharacter.description}
+              >
+                {editingCharacter ? 'Update Character' : 'Add Character'}
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setIsAddingCharacter(false)
+                  setEditingCharacter(null)
+                  setNewCharacter({ name: '', description: '', appearance: '', role: 'supporting' })
+                }}
+              >
+                Cancel
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
       )}
 
-      {/* Add New Character */}
-      <Card className="border-dashed border-2 border-gray-300">
-        <CardHeader>
-          <CardTitle className="flex items-center space-x-2 text-gray-600">
-            <Plus className="h-5 w-5" />
-            <span>Add New Character</span>
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid md:grid-cols-2 gap-4">
-            <Input
-              placeholder="Character name"
-              value={newCharacter.name || ''}
-              onChange={(e) => setNewCharacter({ ...newCharacter, name: e.target.value })}
-            />
-            <Input
-              placeholder="Age (optional)"
-              value={newCharacter.age || ''}
-              onChange={(e) => setNewCharacter({ ...newCharacter, age: e.target.value })}
-            />
-          </div>
-          <Textarea
-            placeholder="Describe this character..."
-            value={newCharacter.description || ''}
-            onChange={(e) => setNewCharacter({ ...newCharacter, description: e.target.value })}
-            rows={2}
-          />
-          <Button
-            onClick={handleAddCharacter}
-            disabled={!newCharacter.name?.trim()}
-            className="w-full"
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            Add Character
-          </Button>
-        </CardContent>
-      </Card>
-
-      {/* Re-extract Button */}
-      {characters.length > 0 && (
-        <div className="text-center">
-          <Button
-            variant="outline"
-            onClick={handleExtractCharacters}
-            disabled={isExtracting}
-          >
-            {isExtracting ? (
-              <>
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current mr-2"></div>
-                Finding More Characters...
-              </>
-            ) : (
-              <>
-                <Wand2 className="h-4 w-4 mr-2" />
-                Find More Characters
-              </>
-            )}
-          </Button>
-        </div>
-      )}
+      {/* Navigation */}
+      <div className="flex justify-between">
+        <Button variant="outline" onClick={onPrev}>
+          Back to Art Style
+        </Button>
+        <Button 
+          onClick={onNext}
+          disabled={!canProceed}
+          className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
+        >
+          Continue to Scenes
+        </Button>
+      </div>
     </div>
   )
 }
