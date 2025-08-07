@@ -8,7 +8,8 @@ import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Film, Plus, Edit, Trash2, ArrowUp, ArrowDown, Wand2, Sparkles } from 'lucide-react'
+import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Film, Plus, Edit, Trash2, ArrowUp, ArrowDown, Wand2, Sparkles, Image, RefreshCw, AlertCircle } from 'lucide-react'
 import type { StoryFormData, Scene } from '@/app/create/page'
 
 interface SceneManagementStepProps {
@@ -26,19 +27,88 @@ const SCENE_MOODS = [
 export function SceneManagementStep({ formData, updateFormData, onNext, onPrev }: SceneManagementStepProps) {
   const [isAddingScene, setIsAddingScene] = useState(false)
   const [editingScene, setEditingScene] = useState<string | null>(null)
-  const [newScene, setNewScene] = useState<Partial<Scene>>({
+  const [newScene, setNewScene] = useState<Partial<Scene & { imageUrl?: string }>>({
     title: '',
     description: '',
     setting: '',
     mood: 'Happy',
     keyEvents: [],
     characters: [],
-    narration: ''
+    narration: '',
+    imagePrompt: '',
+    imageUrl: ''
   })
+  const [generatingImage, setGeneratingImage] = useState<string | null>(null)
+  const [imageError, setImageError] = useState<string | null>(null)
+
+  const generateSceneImage = async (sceneId?: string) => {
+    const scene = sceneId
+      ? formData.scenes?.find(s => s.id === sceneId) || formData.generatedScenes?.find(s => s.id === sceneId)
+      : newScene
+
+    if (!scene?.title || !scene?.description) {
+      setImageError('Please provide scene title and description first')
+      return
+    }
+
+    const targetId = sceneId || 'new'
+    setGeneratingImage(targetId)
+    setImageError(null)
+
+    try {
+      const prompt = scene.imagePrompt || 
+        `Children's book illustration, ${scene.setting || ''} scene with ${scene.mood?.toLowerCase() || 'happy'} mood. ${scene.description}. Whimsical and colorful, cartoon style, bright colors, storybook art`
+
+      const response = await fetch('/api/generate-image', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          prompt,
+          steps: 30,
+          guidance_scale: 7.5
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to generate image')
+      }
+
+      const data = await response.json()
+      const imageUrl = `data:image/png;base64,${data.imageUrl}`
+
+      if (sceneId) {
+        // Update existing scene
+        const scenes = [...(formData.scenes || []), ...(formData.generatedScenes || [])]
+        const updatedScenes = scenes.map(s =>
+          s.id === sceneId
+            ? { ...s, imageUrl }
+            : s
+        )
+        
+        const regularScenes = updatedScenes.filter(s => formData.scenes?.some(fs => fs.id === s.id))
+        const generatedScenes = updatedScenes.filter(s => formData.generatedScenes?.some(gs => gs.id === s.id))
+        
+        updateFormData({ 
+          scenes: regularScenes.length > 0 ? regularScenes : undefined,
+          generatedScenes: generatedScenes.length > 0 ? generatedScenes : undefined
+        })
+      } else {
+        // Update new scene being created
+        setNewScene(prev => ({ ...prev, imageUrl }))
+      }
+    } catch (error) {
+      console.error('Error generating scene image:', error)
+      setImageError('Failed to generate scene image. Please try again.')
+    } finally {
+      setGeneratingImage(null)
+    }
+  }
 
   const handleAddScene = () => {
     if (newScene.title && newScene.description) {
-      const scene: Scene = {
+      const scene: Scene & { imageUrl?: string } = {
         id: `scene-${Date.now()}`,
         title: newScene.title,
         description: newScene.description || '',
@@ -46,9 +116,10 @@ export function SceneManagementStep({ formData, updateFormData, onNext, onPrev }
         mood: newScene.mood || 'Happy',
         keyEvents: newScene.keyEvents || [],
         characters: newScene.characters || [],
-        imagePrompt: `${newScene.setting} scene with ${newScene.mood.toLowerCase()} mood`,
+        imagePrompt: newScene.imagePrompt || `Children's book illustration, ${newScene.setting || ''} scene with ${newScene.mood?.toLowerCase() || 'happy'} mood. ${newScene.description}`,
         narration: newScene.narration || newScene.description || '',
-        order: (formData.scenes?.length || 0) + 1
+        order: (formData.scenes?.length || 0) + 1,
+        imageUrl: newScene.imageUrl
       }
 
       updateFormData({
@@ -289,20 +360,55 @@ export function SceneManagementStep({ formData, updateFormData, onNext, onPrev }
                 </div>
               </CardHeader>
               <CardContent className="pt-0">
-                {scene.setting && (
-                  <p className="text-sm text-gray-600 mb-2">
-                    <strong>Setting:</strong> {scene.setting}
-                  </p>
-                )}
-                {scene.keyEvents && scene.keyEvents.length > 0 && (
-                  <div className="flex flex-wrap gap-1">
-                    {scene.keyEvents.map((event, eventIndex) => (
-                      <Badge key={eventIndex} variant="outline" className="text-xs">
-                        {event}
-                      </Badge>
-                    ))}
+                <div className="space-y-4">
+                  <div>
+                    {scene.setting && (
+                      <p className="text-sm text-gray-600 mb-2">
+                        <strong>Setting:</strong> {scene.setting}
+                      </p>
+                    )}
+                    {scene.keyEvents && scene.keyEvents.length > 0 && (
+                      <div className="flex flex-wrap gap-1">
+                        {scene.keyEvents.map((event, eventIndex) => (
+                          <Badge key={eventIndex} variant="outline" className="text-xs">
+                            {event}
+                          </Badge>
+                        ))}
+                      </div>
+                    )}
                   </div>
-                )}
+                  {/* Scene Image */}
+                  <div className="flex justify-center">
+                    <div className="w-[200px] h-[200px]">
+                      <div className="relative group w-full h-full">
+                        {(scene as any).imageUrl ? (
+                          <img
+                            src={(scene as any).imageUrl}
+                            alt={scene.title}
+                            className="w-full h-full object-cover rounded-lg border-2 border-gray-200"
+                          />
+                        ) : (
+                          <div className="w-full h-full bg-gray-100 rounded-lg border-2 border-dashed border-gray-300 flex items-center justify-center">
+                            {generatingImage === scene.id ? (
+                              <RefreshCw className="h-8 w-8 text-gray-400 animate-spin" />
+                            ) : (
+                              <Image className="h-8 w-8 text-gray-400" />
+                            )}
+                          </div>
+                        )}
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          onClick={() => generateSceneImage(scene.id)}
+                          disabled={generatingImage === scene.id}
+                          className="absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          <RefreshCw className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </CardContent>
             </Card>
           ))}
@@ -393,6 +499,68 @@ export function SceneManagementStep({ formData, updateFormData, onNext, onPrev }
                 placeholder="The actual text that will be read in this scene"
               />
             </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="scene-image-prompt">Image Generation Prompt (Optional)</Label>
+              <div className="flex gap-2">
+                <div className="flex-1">
+                  <Textarea
+                    id="scene-image-prompt"
+                    value={newScene.imagePrompt || ''}
+                    onChange={(e) => setNewScene({ ...newScene, imagePrompt: e.target.value })}
+                    placeholder="Customize the prompt for image generation"
+                  />
+                </div>
+                <div className="w-48 space-y-3">
+                  <Label>Scene Preview</Label>
+                  <div className="w-full h-48 bg-gray-100 rounded-lg border-2 border-dashed border-gray-300 flex flex-col items-center justify-center">
+                    {newScene.imageUrl ? (
+                      <img
+                        src={newScene.imageUrl}
+                        alt={newScene.title || 'Scene'}
+                        className="w-full h-full object-cover rounded-lg"
+                      />
+                    ) : generatingImage === 'new' ? (
+                      <div className="text-center">
+                        <RefreshCw className="h-8 w-8 text-gray-400 animate-spin mx-auto mb-2" />
+                        <p className="text-sm text-gray-500">Generating...</p>
+                      </div>
+                    ) : (
+                      <div className="text-center">
+                        <Image className="h-8 w-8 text-gray-400 mx-auto mb-2" />
+                        <p className="text-sm text-gray-500">No image yet</p>
+                      </div>
+                    )}
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => generateSceneImage()}
+                    disabled={!newScene.title || !newScene.description || generatingImage === 'new'}
+                    className="w-full"
+                  >
+                    {generatingImage === 'new' ? (
+                      <>
+                        <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                        Generating...
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="h-4 w-4 mr-2" />
+                        Generate Image
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </div>
+            </div>
+
+            {imageError && (
+              <Alert variant="destructive">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>{imageError}</AlertDescription>
+              </Alert>
+            )}
 
             <div className="flex gap-2">
               <Button
