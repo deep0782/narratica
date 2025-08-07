@@ -8,7 +8,7 @@ interface StoredDraft {
   timestamp: number
 }
 
-export const autoSaveDraft = (formData: Partial<StoryFormData>) => {
+export const saveDraft = (formData: Partial<StoryFormData>) => {
   try {
     const draft: StoredDraft = {
       data: formData,
@@ -18,6 +18,10 @@ export const autoSaveDraft = (formData: Partial<StoryFormData>) => {
   } catch (error) {
     console.error('Failed to save draft:', error)
   }
+}
+
+export const autoSaveDraft = (formData: Partial<StoryFormData>) => {
+  saveDraft(formData)
 }
 
 export const loadDraft = (): Partial<StoryFormData> | null => {

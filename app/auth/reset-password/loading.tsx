@@ -1,19 +1,25 @@
+import { Skeleton } from "@/components/ui/skeleton"
+import { Card, CardContent, CardHeader } from "@/components/ui/card"
+
 export default function Loading() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-50 to-pink-50">
-      <div className="max-w-md w-full mx-auto p-6">
-        <div className="bg-white rounded-2xl shadow-xl p-8 border border-purple-100">
-          <div className="text-center space-y-4">
-            <div className="w-12 h-12 mx-auto bg-purple-100 rounded-full flex items-center justify-center">
-              <div className="w-6 h-6 border-2 border-purple-600 border-t-transparent rounded-full animate-spin"></div>
-            </div>
-            <div className="space-y-2">
-              <div className="h-4 bg-gray-200 rounded animate-pulse"></div>
-              <div className="h-4 bg-gray-200 rounded animate-pulse w-3/4 mx-auto"></div>
-            </div>
+      <Card className="w-full max-w-md">
+        <CardHeader className="space-y-1">
+          <Skeleton className="h-8 w-48 mx-auto" />
+          <Skeleton className="h-4 w-64 mx-auto" />
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Skeleton className="h-4 w-20" />
+            <Skeleton className="h-10 w-full" />
           </div>
-        </div>
-      </div>
+          <Skeleton className="h-10 w-full" />
+          <div className="text-center">
+            <Skeleton className="h-4 w-32 mx-auto" />
+          </div>
+        </CardContent>
+      </Card>
     </div>
   )
 }
