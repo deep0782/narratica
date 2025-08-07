@@ -8,7 +8,8 @@ import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Users, Plus, Edit, Trash2, Sparkles, Wand2 } from 'lucide-react'
+import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Users, Plus, Edit, Trash2, Sparkles, Wand2, Image, RefreshCw, AlertCircle } from 'lucide-react'
 import type { StoryFormData, Character } from '@/app/create/page'
 
 interface CharacterManagementStepProps {
@@ -21,29 +22,90 @@ interface CharacterManagementStepProps {
 export function CharacterManagementStep({ formData, updateFormData, onNext, onPrev }: CharacterManagementStepProps) {
   const [isAddingCharacter, setIsAddingCharacter] = useState(false)
   const [editingCharacter, setEditingCharacter] = useState<string | null>(null)
-  const [newCharacter, setNewCharacter] = useState<Partial<Character>>({
+  const [generatingImage, setGeneratingImage] = useState<string | null>(null)
+  const [imageError, setImageError] = useState<string | null>(null)
+  const [newCharacter, setNewCharacter] = useState<Partial<Character & { imageUrl?: string }>>({
     name: '',
     description: '',
     appearance: '',
-    role: 'supporting'
+    role: 'supporting',
+    imageUrl: ''
   })
+
+  const generateCharacterImage = async (characterId?: string) => {
+    const character = characterId 
+      ? formData.characters?.find(c => c.id === characterId) 
+      : newCharacter
+
+    if (!character?.name || !character?.description) {
+      setImageError('Please provide character name and description first')
+      return
+    }
+
+    const targetId = characterId || 'new'
+    setGeneratingImage(targetId)
+    setImageError(null)
+
+    try {
+      // Create detailed prompt for character image generation
+      const prompt = `Character portrait of ${character.name}, ${character.description}. ${character.appearance ? `Appearance: ${character.appearance}.` : ''} Children's book illustration style, friendly and colorful, cartoon style, safe for children, storybook character art, high quality, detailed`
+
+      const response = await fetch('/api/generate-image', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          prompt,
+          steps: 30,
+          guidance_scale: 7.5
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to generate image')
+      }
+
+      const data = await response.json()
+      const imageUrl = `data:image/png;base64,${data.imageUrl}`
+
+      if (characterId) {
+        // Update existing character
+        const updatedCharacters = formData.characters?.map(char =>
+          char.id === characterId
+            ? { ...char, imageUrl }
+            : char
+        ) || []
+        updateFormData({ characters: updatedCharacters })
+      } else {
+        // Update new character being created
+        setNewCharacter(prev => ({ ...prev, imageUrl }))
+      }
+    } catch (error) {
+      console.error('Error generating character image:', error)
+      setImageError('Failed to generate character image. Please try again.')
+    } finally {
+      setGeneratingImage(null)
+    }
+  }
 
   const handleAddCharacter = () => {
     if (newCharacter.name && newCharacter.description) {
-      const character: Character = {
+      const character: Character & { imageUrl?: string } = {
         id: `char-${Date.now()}`,
         name: newCharacter.name,
         description: newCharacter.description || '',
         appearance: newCharacter.appearance || '',
         role: newCharacter.role as 'main' | 'supporting' | 'minor',
-        isChildCharacter: false
+        isChildCharacter: false,
+        imageUrl: newCharacter.imageUrl
       }
 
       updateFormData({
         characters: [...(formData.characters || []), character]
       })
 
-      setNewCharacter({ name: '', description: '', appearance: '', role: 'supporting' })
+      setNewCharacter({ name: '', description: '', appearance: '', role: 'supporting', imageUrl: '' })
       setIsAddingCharacter(false)
     }
   }
@@ -51,7 +113,10 @@ export function CharacterManagementStep({ formData, updateFormData, onNext, onPr
   const handleEditCharacter = (characterId: string) => {
     const character = formData.characters?.find(c => c.id === characterId)
     if (character) {
-      setNewCharacter(character)
+      setNewCharacter({
+        ...character,
+        imageUrl: (character as any).imageUrl || ''
+      })
       setEditingCharacter(characterId)
       setIsAddingCharacter(true)
     }
@@ -66,13 +131,14 @@ export function CharacterManagementStep({ formData, updateFormData, onNext, onPr
               name: newCharacter.name!,
               description: newCharacter.description!,
               appearance: newCharacter.appearance || '',
-              role: newCharacter.role as 'main' | 'supporting' | 'minor'
+              role: newCharacter.role as 'main' | 'supporting' | 'minor',
+              imageUrl: newCharacter.imageUrl
             }
           : char
       ) || []
 
       updateFormData({ characters: updatedCharacters })
-      setNewCharacter({ name: '', description: '', appearance: '', role: 'supporting' })
+      setNewCharacter({ name: '', description: '', appearance: '', role: 'supporting', imageUrl: '' })
       setIsAddingCharacter(false)
       setEditingCharacter(null)
     }
@@ -117,9 +183,17 @@ export function CharacterManagementStep({ formData, updateFormData, onNext, onPr
       <div className="text-center space-y-2">
         <h2 className="text-3xl font-bold text-gray-900">Manage Your Characters</h2>
         <p className="text-gray-600">
-          Add characters to your story or let AI extract them from your description
+          Add characters to your story and generate their visual representations
         </p>
       </div>
+
+      {/* Error Alert */}
+      {imageError && (
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>{imageError}</AlertDescription>
+        </Alert>
+      )}
 
       {/* AI Character Extraction */}
       <Card className="bg-gradient-to-r from-blue-50 to-purple-50 border-blue-200">
@@ -157,52 +231,92 @@ export function CharacterManagementStep({ formData, updateFormData, onNext, onPr
         </div>
 
         <div className="grid gap-4 md:grid-cols-2">
-          {allCharacters.map((character) => (
-            <Card key={character.id} className="relative">
-              <CardHeader className="pb-3">
-                <div className="flex items-start justify-between">
-                  <div>
-                    <CardTitle className="text-lg">{character.name}</CardTitle>
-                    <div className="flex gap-2 mt-1">
-                      <Badge variant={character.role === 'main' ? 'default' : 'secondary'}>
-                        {character.role}
-                      </Badge>
-                      {character.isChildCharacter && (
-                        <Badge variant="outline" className="bg-yellow-50 text-yellow-700">
-                          Child Character
+          {allCharacters.map((character) => {
+            const characterWithImage = character as Character & { imageUrl?: string }
+            const isGenerating = generatingImage === character.id
+            
+            return (
+              <Card key={character.id} className="relative">
+                <CardHeader className="pb-3">
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <CardTitle className="text-lg">{character.name}</CardTitle>
+                      <div className="flex gap-2 mt-1">
+                        <Badge variant={character.role === 'main' ? 'default' : 'secondary'}>
+                          {character.role}
                         </Badge>
+                        {character.isChildCharacter && (
+                          <Badge variant="outline" className="bg-yellow-50 text-yellow-700">
+                            Child Character
+                          </Badge>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex gap-1">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => generateCharacterImage(character.id)}
+                        disabled={isGenerating}
+                        title="Generate character image"
+                      >
+                        {isGenerating ? (
+                          <RefreshCw className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Image className="h-4 w-4" />
+                        )}
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleEditCharacter(character.id)}
+                      >
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleDeleteCharacter(character.id)}
+                        className="text-red-600 hover:text-red-700"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent className="pt-0">
+                  <div className="flex gap-4">
+                    <div className="flex-1">
+                      <p className="text-gray-700 text-sm mb-2">{character.description}</p>
+                      {character.appearance && (
+                        <p className="text-gray-600 text-xs">
+                          <strong>Appearance:</strong> {character.appearance}
+                        </p>
+                      )}
+                    </div>
+                    {/* Character Image */}
+                    <div className="w-20 h-20 flex-shrink-0">
+                      {characterWithImage.imageUrl ? (
+                        <img
+                          src={characterWithImage.imageUrl || "/placeholder.svg"}
+                          alt={character.name}
+                          className="w-full h-full object-cover rounded-lg border-2 border-gray-200"
+                        />
+                      ) : (
+                        <div className="w-full h-full bg-gray-100 rounded-lg border-2 border-dashed border-gray-300 flex items-center justify-center">
+                          {isGenerating ? (
+                            <RefreshCw className="h-6 w-6 text-gray-400 animate-spin" />
+                          ) : (
+                            <Image className="h-6 w-6 text-gray-400" />
+                          )}
+                        </div>
                       )}
                     </div>
                   </div>
-                  <div className="flex gap-1">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleEditCharacter(character.id)}
-                    >
-                      <Edit className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleDeleteCharacter(character.id)}
-                      className="text-red-600 hover:text-red-700"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent className="pt-0">
-                <p className="text-gray-700 text-sm mb-2">{character.description}</p>
-                {character.appearance && (
-                  <p className="text-gray-600 text-xs">
-                    <strong>Appearance:</strong> {character.appearance}
-                  </p>
-                )}
-              </CardContent>
-            </Card>
-          ))}
+                </CardContent>
+              </Card>
+            )
+          })}
         </div>
 
         {allCharacters.length === 0 && (
@@ -231,52 +345,100 @@ export function CharacterManagementStep({ formData, updateFormData, onNext, onPr
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="grid gap-4 md:grid-cols-2">
-              <div className="space-y-2">
-                <Label htmlFor="char-name">Character Name</Label>
-                <Input
-                  id="char-name"
-                  value={newCharacter.name || ''}
-                  onChange={(e) => setNewCharacter({ ...newCharacter, name: e.target.value })}
-                  placeholder="Enter character name"
-                />
+            <div className="flex gap-6">
+              {/* Form Fields */}
+              <div className="flex-1 space-y-4">
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="char-name">Character Name</Label>
+                    <Input
+                      id="char-name"
+                      value={newCharacter.name || ''}
+                      onChange={(e) => setNewCharacter({ ...newCharacter, name: e.target.value })}
+                      placeholder="Enter character name"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="char-role">Role</Label>
+                    <Select
+                      value={newCharacter.role}
+                      onValueChange={(value) => setNewCharacter({ ...newCharacter, role: value as 'main' | 'supporting' | 'minor' })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="main">Main Character</SelectItem>
+                        <SelectItem value="supporting">Supporting Character</SelectItem>
+                        <SelectItem value="minor">Minor Character</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="char-description">Description</Label>
+                  <Textarea
+                    id="char-description"
+                    value={newCharacter.description || ''}
+                    onChange={(e) => setNewCharacter({ ...newCharacter, description: e.target.value })}
+                    placeholder="Describe the character's personality, background, and role in the story"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="char-appearance">Appearance (Optional)</Label>
+                  <Input
+                    id="char-appearance"
+                    value={newCharacter.appearance || ''}
+                    onChange={(e) => setNewCharacter({ ...newCharacter, appearance: e.target.value })}
+                    placeholder="Describe how the character looks"
+                  />
+                </div>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="char-role">Role</Label>
-                <Select
-                  value={newCharacter.role}
-                  onValueChange={(value) => setNewCharacter({ ...newCharacter, role: value as 'main' | 'supporting' | 'minor' })}
+
+              {/* Character Image Preview */}
+              <div className="w-48 space-y-3">
+                <Label>Character Preview</Label>
+                <div className="w-full h-48 bg-gray-100 rounded-lg border-2 border-dashed border-gray-300 flex flex-col items-center justify-center">
+                  {newCharacter.imageUrl ? (
+                    <img
+                      src={newCharacter.imageUrl || "/placeholder.svg"}
+                      alt={newCharacter.name || 'Character'}
+                      className="w-full h-full object-cover rounded-lg"
+                    />
+                  ) : generatingImage === 'new' ? (
+                    <div className="text-center">
+                      <RefreshCw className="h-8 w-8 text-gray-400 animate-spin mx-auto mb-2" />
+                      <p className="text-sm text-gray-500">Generating...</p>
+                    </div>
+                  ) : (
+                    <div className="text-center">
+                      <Image className="h-8 w-8 text-gray-400 mx-auto mb-2" />
+                      <p className="text-sm text-gray-500">No image yet</p>
+                    </div>
+                  )}
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => generateCharacterImage()}
+                  disabled={!newCharacter.name || !newCharacter.description || generatingImage === 'new'}
+                  className="w-full"
                 >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="main">Main Character</SelectItem>
-                    <SelectItem value="supporting">Supporting Character</SelectItem>
-                    <SelectItem value="minor">Minor Character</SelectItem>
-                  </SelectContent>
-                </Select>
+                  {generatingImage === 'new' ? (
+                    <>
+                      <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                      Generating...
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="h-4 w-4 mr-2" />
+                      Generate Image
+                    </>
+                  )}
+                </Button>
               </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="char-description">Description</Label>
-              <Textarea
-                id="char-description"
-                value={newCharacter.description || ''}
-                onChange={(e) => setNewCharacter({ ...newCharacter, description: e.target.value })}
-                placeholder="Describe the character's personality, background, and role in the story"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="char-appearance">Appearance (Optional)</Label>
-              <Input
-                id="char-appearance"
-                value={newCharacter.appearance || ''}
-                onChange={(e) => setNewCharacter({ ...newCharacter, appearance: e.target.value })}
-                placeholder="Describe how the character looks"
-              />
             </div>
 
             <div className="flex gap-2">
@@ -291,7 +453,8 @@ export function CharacterManagementStep({ formData, updateFormData, onNext, onPr
                 onClick={() => {
                   setIsAddingCharacter(false)
                   setEditingCharacter(null)
-                  setNewCharacter({ name: '', description: '', appearance: '', role: 'supporting' })
+                  setNewCharacter({ name: '', description: '', appearance: '', role: 'supporting', imageUrl: '' })
+                  setImageError(null)
                 }}
               >
                 Cancel

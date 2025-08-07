@@ -21,6 +21,7 @@ export interface Character {
   appearance: string
   role: 'main' | 'supporting' | 'minor'
   isChildCharacter?: boolean
+  imageUrl?: string // Added imageUrl property
 }
 
 export interface Scene {
