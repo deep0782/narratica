@@ -31,9 +31,7 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${roboto.variable} ${comicNeue.variable}`}>
       <body className="font-sans antialiased" style={{ fontFamily: 'var(--font-roboto)' }}>
-        <Navbar />
         {children}
-        <Footer />
       </body>
     </html>
   )
