@@ -125,6 +125,14 @@ export default function SignInPage() {
           <p className="text-gray-600">Sign in to continue creating magical stories</p>
         </div>
 
+        {/* Back to Home Link */}
+        <div className="mb-4">
+          <Link href="/" className="inline-flex items-center text-sm text-gray-600 hover:text-purple-600 transition-colors">
+            <ArrowLeft className="h-4 w-4 mr-1" />
+            Back to Home
+          </Link>
+        </div>
+
         <Card className="shadow-xl border-0">
           <CardHeader className="space-y-1 pb-4">
             <div className="flex items-center justify-center space-x-2 text-sm text-gray-600">

@@ -73,14 +73,6 @@ export function DashboardHeader({ profile }: DashboardHeaderProps) {
                 <div className="text-xs text-gray-500">Story Dashboard</div>
               </div>
             </Link>
-            
-            {/* Back to Home Link */}
-            <Link href="/">
-              <Button variant="ghost" size="sm" className="text-gray-600 hover:text-purple-600">
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                Back to Home
-              </Button>
-            </Link>
           </div>
 
           {/* Navigation */}
@@ -143,15 +135,6 @@ export function DashboardHeader({ profile }: DashboardHeaderProps) {
                   <p className="text-sm font-medium">{profile?.full_name}</p>
                   <p className="text-xs text-gray-500">{profile?.email}</p>
                 </div>
-                
-                <DropdownMenuItem asChild>
-                  <Link href="/" className="flex items-center">
-                    <Home className="h-4 w-4 mr-2" />
-                    Back to Home
-                  </Link>
-                </DropdownMenuItem>
-                
-                <DropdownMenuSeparator />
                 
                 <DropdownMenuItem asChild>
                   <Link href="/dashboard/profile" className="flex items-center">
