@@ -10,7 +10,7 @@ import { RecentlyCreated } from '@/components/dashboard/recently-created'
 import { FavoritesSection } from '@/components/dashboard/favorites-section'
 import { EmptyState } from '@/components/dashboard/empty-state'
 import { LoadingState } from '@/components/dashboard/loading-state'
-import { getCurrentUser, getProfile, getCurrentUsage } from '@/lib/supabase'
+import { getCurrentUser, getProfile, getCurrentUsage, isDatabaseAvailable } from '@/lib/supabase'
 import type { ParentProfile, Story, Child } from '@/lib/supabase'
 
 export default function DashboardPage() {
@@ -24,6 +24,7 @@ export default function DashboardPage() {
   const [selectedTheme, setSelectedTheme] = useState<string>('all')
   const [sortBy, setSortBy] = useState<'recent' | 'title' | 'child'>('recent')
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
+  const [isDatabaseReady, setIsDatabaseReady] = useState(false)
 
   useEffect(() => {
     loadDashboardData()
@@ -33,19 +34,23 @@ export default function DashboardPage() {
     try {
       setIsLoading(true)
       
+      // Check if database is available
+      const dbAvailable = await isDatabaseAvailable()
+      setIsDatabaseReady(dbAvailable)
+      
       const user = await getCurrentUser()
       if (!user) return
 
-      // Load user profile
+      // Load user profile (will use mock data if database not available)
       const userProfile = await getProfile(user.id)
       setProfile(userProfile)
 
-      // Load usage data
+      // Load usage data (will use mock data if database not available)
       const currentUsage = await getCurrentUsage(user.id)
       setUsage(currentUsage)
 
-      // TODO: Load stories and children when database is set up
-      // For now, using mock data to demonstrate the interface
+      // Load mock data for stories and children
+      // In a real app, these would come from the database
       setStories(mockStories)
       setChildren(mockChildren)
 
@@ -153,6 +158,18 @@ export default function DashboardPage() {
       <DashboardHeader profile={profile} />
       
       <div className="container mx-auto px-4 py-8">
+        {/* Database Status Banner (for development) */}
+        {!isDatabaseReady && (
+          <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+            <div className="flex items-center space-x-2">
+              <div className="w-2 h-2 bg-yellow-400 rounded-full"></div>
+              <p className="text-sm text-yellow-800">
+                <strong>Demo Mode:</strong> Database not connected. Using sample data for preview.
+              </p>
+            </div>
+          </div>
+        )}
+
         {/* Usage Limits */}
         <UsageLimits 
           profile={profile} 

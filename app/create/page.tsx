@@ -9,7 +9,7 @@ import { StoryDetailsStep } from '@/components/create/story-details-step'
 import { ReviewStep } from '@/components/create/review-step'
 import { GeneratingStep } from '@/components/create/generating-step'
 import { WizardNavigation } from '@/components/create/wizard-navigation'
-import { getCurrentUser, getProfile, trackUsage } from '@/lib/supabase'
+import { getCurrentUser, getProfile, trackUsage, isDatabaseAvailable } from '@/lib/supabase'
 import type { ParentProfile, Child } from '@/lib/supabase'
 
 export interface StoryFormData {
@@ -50,6 +50,7 @@ export default function CreateStoryPage() {
   const [profile, setProfile] = useState<ParentProfile | null>(null)
   const [children, setChildren] = useState<Child[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  const [isDatabaseReady, setIsDatabaseReady] = useState(false)
   const [formData, setFormData] = useState<StoryFormData>({
     selectedChild: null,
     target_age_group: 'elementary',
@@ -67,6 +68,10 @@ export default function CreateStoryPage() {
 
   const loadUserData = async () => {
     try {
+      // Check if database is available
+      const dbAvailable = await isDatabaseAvailable()
+      setIsDatabaseReady(dbAvailable)
+
       const user = await getCurrentUser()
       if (!user) {
         router.push('/auth/signin')
@@ -76,8 +81,7 @@ export default function CreateStoryPage() {
       const userProfile = await getProfile(user.id)
       setProfile(userProfile)
 
-      // TODO: Load children from database when connected
-      // For now using mock data
+      // Load mock children data (replace with real data when database is connected)
       setChildren(mockChildren)
     } catch (error) {
       console.error('Error loading user data:', error)
@@ -145,7 +149,7 @@ export default function CreateStoryPage() {
     try {
       setCurrentStep(4) // Move to generating step
       
-      // Track usage
+      // Track usage (will be skipped if database not available)
       if (profile) {
         await trackUsage(profile.id, 'story_create', formData.selectedChild?.id)
       }
@@ -225,6 +229,18 @@ export default function CreateStoryPage() {
 
       <div className="container mx-auto px-4 py-8">
         <div className="max-w-4xl mx-auto">
+          {/* Database Status Banner (for development) */}
+          {!isDatabaseReady && currentStep < 4 && (
+            <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+              <div className="flex items-center space-x-2">
+                <div className="w-2 h-2 bg-blue-400 rounded-full"></div>
+                <p className="text-sm text-blue-800">
+                  <strong>Demo Mode:</strong> Database not connected. Story creation will use sample data.
+                </p>
+              </div>
+            </div>
+          )}
+
           {renderCurrentStep()}
           
           {currentStep < 4 && (
