@@ -1,263 +1,323 @@
 'use client'
 
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
-import { User, BookOpen, Palette, Clock, MapPin, Lightbulb, Star, Wand2, Sparkles } from 'lucide-react'
-import type { StoryFormData } from '@/app/create/page'
-import type { ParentProfile } from '@/lib/supabase'
+import { StoryFormData } from '@/app/create/page'
+import { Edit, User, Palette, Users, Film, BookOpen, Settings, Sparkles } from 'lucide-react'
 
 interface ReviewStepProps {
   formData: StoryFormData
-  profile: ParentProfile | null
   onGenerate: () => void
+  onPrev: () => void
+  onEdit: (stepIndex: number) => void
 }
 
-const EDUCATIONAL_THEMES = {
-  'friendship': 'Friendship & Kindness',
-  'courage': 'Courage & Bravery',
-  'honesty': 'Honesty & Truth',
-  'responsibility': 'Responsibility',
-  'empathy': 'Empathy & Understanding',
-  'perseverance': 'Perseverance',
-  'creativity': 'Creativity & Imagination',
-  'nature': 'Nature & Environment'
-}
+export function ReviewStep({ formData, onGenerate, onPrev, onEdit }: ReviewStepProps) {
+  const isComplete = formData.child_name && formData.story_input && formData.art_style
 
-const ART_STYLES = {
-  'disney-style': 'Disney Style',
-  'pixar-style': 'Pixar Style',
-  'watercolor': 'Watercolor',
-  'cartoon': 'Cartoon',
-  'storybook': 'Classic Storybook',
-  'manga': 'Manga Style'
-}
-
-const STORY_LENGTHS = {
-  'short': 'Short Story (4-6 pages)',
-  'medium': 'Medium Story (8-12 pages)',
-  'long': 'Long Story (14-20 pages)'
-}
-
-const CHARACTER_ROLES = {
-  'protagonist': 'Main Hero',
-  'supporting': 'Supporting Character',
-  'narrator': 'Story Narrator'
-}
-
-export function ReviewStep({ formData, profile, onGenerate }: ReviewStepProps) {
-  const childName = formData.selectedChild?.name || formData.newChildData?.name || 'Your child'
-  
   return (
-    <div className="space-y-8">
-      <div className="text-center mb-8">
-        <h3 className="text-2xl font-bold text-gray-900 mb-2">
-          Ready to create your magical story?
-        </h3>
+    <div className="space-y-6">
+      <div className="text-center space-y-2">
+        <h2 className="text-3xl font-bold text-gray-900">Review Your Story</h2>
         <p className="text-gray-600">
-          Review your story details and let our AI create a personalized adventure for {childName}
+          Review all the details before we create your personalized story
         </p>
       </div>
 
-      {/* Story Preview Card */}
-      <Card className="bg-gradient-to-r from-purple-50 to-pink-50 border-purple-200">
-        <CardHeader>
-          <CardTitle className="flex items-center space-x-2 text-purple-900">
-            <Wand2 className="h-6 w-6" />
-            <span>Your Story Preview</span>
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          {/* Child Information */}
-          <div className="flex items-start space-x-4 p-4 bg-white rounded-lg border">
-            <div className="bg-purple-100 p-3 rounded-full">
-              <User className="h-6 w-6 text-purple-600" />
+      <div className="grid gap-6">
+        {/* Child Profile */}
+        <Card className="border-purple-200">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <div className="flex items-center space-x-2">
+              <User className="w-5 h-5 text-purple-600" />
+              <CardTitle className="text-lg">Child Profile</CardTitle>
             </div>
-            <div className="flex-1">
-              <h4 className="font-semibold text-gray-900 mb-2">Story Star</h4>
-              <div className="space-y-2">
-                <p className="font-medium text-lg">{childName}</p>
-                {formData.selectedChild && (
-                  <>
-                    <div className="flex flex-wrap gap-2">
-                      <Badge variant="outline">
-                        {formData.selectedChild.age_group.charAt(0).toUpperCase() + formData.selectedChild.age_group.slice(1)}
-                      </Badge>
-                      <Badge variant="outline">
-                        {CHARACTER_ROLES[formData.character_role]}
-                      </Badge>
-                    </div>
-                    <div>
-                      <p className="text-sm text-gray-600 mb-1">Favorite Activities:</p>
-                      <div className="flex flex-wrap gap-1">
-                        {formData.selectedChild.favorite_activities.map((activity) => (
-                          <Badge key={activity} variant="secondary" className="text-xs">
-                            {activity}
-                          </Badge>
-                        ))}
-                      </div>
-                    </div>
-                    <div>
-                      <p className="text-sm text-gray-600 mb-1">Character Traits:</p>
-                      <div className="flex flex-wrap gap-1">
-                        {formData.selectedChild.character_traits.map((trait) => (
-                          <Badge key={trait} variant="secondary" className="text-xs">
-                            {trait}
-                          </Badge>
-                        ))}
-                      </div>
-                    </div>
-                  </>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => onEdit(0)}
+              className="text-purple-600 hover:text-purple-700"
+            >
+              <Edit className="w-4 h-4 mr-1" />
+              Edit
+            </Button>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div>
+              <span className="font-medium">Name:</span> {formData.child_name || 'Not specified'}
+            </div>
+            <div>
+              <span className="font-medium">Age:</span> {formData.child_age} years old
+            </div>
+            <div>
+              <span className="font-medium">Interests:</span>
+              <div className="flex flex-wrap gap-1 mt-1">
+                {formData.child_interests && formData.child_interests.length > 0 ? (
+                  formData.child_interests.map((interest, index) => (
+                    <Badge key={index} variant="secondary" className="bg-purple-100 text-purple-700">
+                      {interest}
+                    </Badge>
+                  ))
+                ) : (
+                  <span className="text-gray-500">None specified</span>
                 )}
-                {formData.newChildData && (
-                  <>
-                    <div className="flex flex-wrap gap-2">
-                      <Badge variant="outline">
-                        {formData.newChildData.age_group.charAt(0).toUpperCase() + formData.newChildData.age_group.slice(1)}
-                      </Badge>
-                      <Badge variant="outline">
-                        {CHARACTER_ROLES[formData.character_role]}
-                      </Badge>
-                    </div>
-                    <div>
-                      <p className="text-sm text-gray-600 mb-1">Favorite Activities:</p>
-                      <div className="flex flex-wrap gap-1">
-                        {formData.newChildData.favorite_activities.map((activity) => (
-                          <Badge key={activity} variant="secondary" className="text-xs">
-                            {activity}
-                          </Badge>
-                        ))}
-                      </div>
-                    </div>
-                    <div>
-                      <p className="text-sm text-gray-600 mb-1">Character Traits:</p>
-                      <div className="flex flex-wrap gap-1">
-                        {formData.newChildData.character_traits.map((trait) => (
-                          <Badge key={trait} variant="secondary" className="text-xs">
-                            {trait}
-                          </Badge>
-                        ))}
-                      </div>
-                    </div>
-                  </>
-                )}
-              </div>
-            </div>
-          </div>
-
-          <Separator />
-
-          {/* Story Details */}
-          <div className="grid md:grid-cols-2 gap-6">
-            {/* Left Column */}
-            <div className="space-y-4">
-              <div className="flex items-start space-x-3">
-                <BookOpen className="h-5 w-5 text-green-500 mt-1" />
-                <div>
-                  <p className="font-medium text-gray-900">Educational Theme</p>
-                  <p className="text-gray-600">{EDUCATIONAL_THEMES[formData.educational_theme as keyof typeof EDUCATIONAL_THEMES]}</p>
-                </div>
-              </div>
-
-              <div className="flex items-start space-x-3">
-                <Palette className="h-5 w-5 text-purple-500 mt-1" />
-                <div>
-                  <p className="font-medium text-gray-900">Art Style</p>
-                  <p className="text-gray-600">{ART_STYLES[formData.art_style as keyof typeof ART_STYLES]}</p>
-                </div>
-              </div>
-
-              <div className="flex items-start space-x-3">
-                <Clock className="h-5 w-5 text-orange-500 mt-1" />
-                <div>
-                  <p className="font-medium text-gray-900">Story Length</p>
-                  <p className="text-gray-600">{STORY_LENGTHS[formData.story_length]}</p>
-                </div>
-              </div>
-            </div>
-
-            {/* Right Column */}
-            <div className="space-y-4">
-              {formData.setting_preference && (
-                <div className="flex items-start space-x-3">
-                  <MapPin className="h-5 w-5 text-green-500 mt-1" />
-                  <div>
-                    <p className="font-medium text-gray-900">Setting</p>
-                    <p className="text-gray-600">{formData.setting_preference}</p>
-                  </div>
-                </div>
-              )}
-
-              {formData.moral_lesson && (
-                <div className="flex items-start space-x-3">
-                  <Star className="h-5 w-5 text-yellow-500 mt-1" />
-                  <div>
-                    <p className="font-medium text-gray-900">Moral Lesson</p>
-                    <p className="text-gray-600">{formData.moral_lesson}</p>
-                  </div>
-                </div>
-              )}
-
-              {formData.specific_elements.length > 0 && (
-                <div className="flex items-start space-x-3">
-                  <Lightbulb className="h-5 w-5 text-purple-500 mt-1" />
-                  <div>
-                    <p className="font-medium text-gray-900">Story Elements</p>
-                    <div className="flex flex-wrap gap-1 mt-1">
-                      {formData.specific_elements.map((element) => (
-                        <Badge key={element} variant="outline" className="text-xs">
-                          {element}
-                        </Badge>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-
-          <Separator />
-
-          {/* Story Description */}
-          <div className="p-4 bg-white rounded-lg border">
-            <h4 className="font-semibold text-gray-900 mb-2">Story Description</h4>
-            <p className="text-gray-700 leading-relaxed">{formData.story_description}</p>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Usage Information */}
-      {profile && (
-        <Card className="bg-blue-50 border-blue-200">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="font-medium text-blue-900">Subscription: {profile.subscription_tier.toUpperCase()}</p>
-                <p className="text-sm text-blue-700">This will count as 1 story creation towards your monthly limit</p>
-              </div>
-              <div className="text-right">
-                <p className="text-sm text-blue-600">Estimated generation time</p>
-                <p className="font-medium text-blue-900">2-3 minutes</p>
               </div>
             </div>
           </CardContent>
         </Card>
-      )}
 
-      {/* Generate Button */}
-      <div className="text-center">
-        <Button 
-          onClick={onGenerate}
-          size="lg"
-          className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white px-12 py-4 text-lg font-semibold rounded-full shadow-lg hover:shadow-xl transition-all duration-300"
+        {/* Story Input */}
+        <Card className="border-blue-200">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <div className="flex items-center space-x-2">
+              <BookOpen className="w-5 h-5 text-blue-600" />
+              <CardTitle className="text-lg">Story Input</CardTitle>
+            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => onEdit(1)}
+              className="text-blue-600 hover:text-blue-700"
+            >
+              <Edit className="w-4 h-4 mr-1" />
+              Edit
+            </Button>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div>
+              <span className="font-medium">Story Ideas:</span>
+              <p className="mt-1 text-gray-700 bg-gray-50 p-3 rounded-lg">
+                {formData.story_input || 'No story input provided'}
+              </p>
+            </div>
+            {formData.story_description && (
+              <div>
+                <span className="font-medium">Description:</span>
+                <p className="mt-1 text-gray-700">{formData.story_description}</p>
+              </div>
+            )}
+            {formData.specific_elements && formData.specific_elements.length > 0 && (
+              <div>
+                <span className="font-medium">Specific Elements:</span>
+                <div className="flex flex-wrap gap-1 mt-1">
+                  {formData.specific_elements.map((element, index) => (
+                    <Badge key={index} variant="outline" className="border-blue-200 text-blue-700">
+                      {element}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Art Style */}
+        <Card className="border-green-200">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <div className="flex items-center space-x-2">
+              <Palette className="w-5 h-5 text-green-600" />
+              <CardTitle className="text-lg">Art Style</CardTitle>
+            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => onEdit(2)}
+              className="text-green-600 hover:text-green-700"
+            >
+              <Edit className="w-4 h-4 mr-1" />
+              Edit
+            </Button>
+          </CardHeader>
+          <CardContent>
+            <Badge variant="secondary" className="bg-green-100 text-green-700 text-base px-3 py-1">
+              {formData.art_style || 'Not selected'}
+            </Badge>
+          </CardContent>
+        </Card>
+
+        {/* Characters */}
+        <Card className="border-orange-200">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <div className="flex items-center space-x-2">
+              <Users className="w-5 h-5 text-orange-600" />
+              <CardTitle className="text-lg">Characters</CardTitle>
+            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => onEdit(3)}
+              className="text-orange-600 hover:text-orange-700"
+            >
+              <Edit className="w-4 h-4 mr-1" />
+              Edit
+            </Button>
+          </CardHeader>
+          <CardContent>
+            {formData.characters && formData.characters.length > 0 ? (
+              <div className="space-y-2">
+                {formData.characters.map((character, index) => (
+                  <div key={character.id} className="flex items-center justify-between p-2 bg-orange-50 rounded-lg">
+                    <div>
+                      <span className="font-medium">{character.name}</span>
+                      <span className="text-sm text-gray-600 ml-2">({character.role})</span>
+                      {character.isMainCharacter && (
+                        <Badge variant="secondary" className="ml-2 bg-orange-200 text-orange-800 text-xs">
+                          Main Character
+                        </Badge>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-gray-500">No characters added yet</p>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Scenes */}
+        <Card className="border-pink-200">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <div className="flex items-center space-x-2">
+              <Film className="w-5 h-5 text-pink-600" />
+              <CardTitle className="text-lg">Scenes</CardTitle>
+            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => onEdit(4)}
+              className="text-pink-600 hover:text-pink-700"
+            >
+              <Edit className="w-4 h-4 mr-1" />
+              Edit
+            </Button>
+          </CardHeader>
+          <CardContent>
+            {formData.scenes && formData.scenes.length > 0 ? (
+              <div className="space-y-2">
+                {formData.scenes
+                  .sort((a, b) => a.order - b.order)
+                  .map((scene, index) => (
+                    <div key={scene.id} className="flex items-center justify-between p-2 bg-pink-50 rounded-lg">
+                      <div>
+                        <span className="font-medium">Scene {index + 1}: {scene.title}</span>
+                        <p className="text-sm text-gray-600 mt-1">{scene.description}</p>
+                      </div>
+                    </div>
+                  ))}
+              </div>
+            ) : (
+              <p className="text-gray-500">No scenes added yet</p>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Story Details & Preferences */}
+        <div className="grid md:grid-cols-2 gap-6">
+          <Card className="border-indigo-200">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <div className="flex items-center space-x-2">
+                <BookOpen className="w-5 h-5 text-indigo-600" />
+                <CardTitle className="text-lg">Story Details</CardTitle>
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => onEdit(5)}
+                className="text-indigo-600 hover:text-indigo-700"
+              >
+                <Edit className="w-4 h-4 mr-1" />
+                Edit
+              </Button>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              <div>
+                <span className="font-medium">Title:</span> {formData.title || 'Auto-generated'}
+              </div>
+              <div>
+                <span className="font-medium">Genre:</span> {formData.genre || 'Not specified'}
+              </div>
+              <div>
+                <span className="font-medium">Theme:</span> {formData.theme || 'Not specified'}
+              </div>
+              {formData.educational_theme && (
+                <div>
+                  <span className="font-medium">Educational Theme:</span> {formData.educational_theme}
+                </div>
+              )}
+              {formData.moral_lesson && (
+                <div>
+                  <span className="font-medium">Moral Lesson:</span> {formData.moral_lesson}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card className="border-teal-200">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <div className="flex items-center space-x-2">
+                <Settings className="w-5 h-5 text-teal-600" />
+                <CardTitle className="text-lg">Preferences</CardTitle>
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => onEdit(6)}
+                className="text-teal-600 hover:text-teal-700"
+              >
+                <Edit className="w-4 h-4 mr-1" />
+                Edit
+              </Button>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              <div>
+                <span className="font-medium">Length:</span> {formData.length}
+              </div>
+              <div>
+                <span className="font-medium">Reading Level:</span> {formData.reading_level}
+              </div>
+              <div>
+                <span className="font-medium">Language:</span> {formData.language}
+              </div>
+              <div>
+                <span className="font-medium">Include Moral:</span> {formData.include_moral ? 'Yes' : 'No'}
+              </div>
+              <div>
+                <span className="font-medium">Interactive Elements:</span> {formData.interactive_elements ? 'Yes' : 'No'}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+
+      <Separator />
+
+      <div className="flex justify-between items-center">
+        <Button
+          variant="outline"
+          onClick={onPrev}
+          className="border-gray-300 text-gray-700 hover:bg-gray-50"
         >
-          <Sparkles className="h-6 w-6 mr-3" />
-          Create My Magical Story
+          Previous
         </Button>
-        <p className="text-sm text-gray-600 mt-3">
-          Our AI will craft a personalized story just for {childName}
-        </p>
+
+        <div className="text-center">
+          {!isComplete && (
+            <p className="text-sm text-amber-600 mb-2">
+              Please complete required fields before generating
+            </p>
+          )}
+          <Button
+            onClick={onGenerate}
+            disabled={!isComplete}
+            className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white px-8 py-3 text-lg font-semibold"
+          >
+            <Sparkles className="w-5 h-5 mr-2" />
+            Generate My Story
+          </Button>
+        </div>
       </div>
     </div>
   )
