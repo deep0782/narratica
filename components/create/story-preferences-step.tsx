@@ -6,11 +6,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Palette, BookOpen, Clock, GraduationCap } from 'lucide-react'
-import type { StoryFormData } from '@/app/create/page'
+import { useWizard, useCanProceed } from '@/contexts/wizard-context'
 
 interface StoryPreferencesStepProps {
-  formData: StoryFormData
-  onUpdate: (updates: Partial<StoryFormData>) => void
+  onNext: () => void
+  onPrev: () => void
 }
 
 const EDUCATIONAL_THEMES = [

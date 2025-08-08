@@ -1,8 +1,7 @@
 import type { Metadata } from 'next'
 import { Roboto, Comic_Neue } from 'next/font/google'
 import './globals.css'
-import { Navbar } from '@/components/layout/navbar'
-import { Footer } from '@/components/layout/footer'
+import { Providers } from '@/components/providers'
 
 const roboto = Roboto({ 
   subsets: ['latin'],
@@ -31,7 +30,9 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${roboto.variable} ${comicNeue.variable}`}>
       <body className="font-sans antialiased" style={{ fontFamily: 'var(--font-roboto)' }}>
-        {children}
+        <Providers>
+          {children}
+        </Providers>
       </body>
     </html>
   )

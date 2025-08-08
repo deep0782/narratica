@@ -33,9 +33,9 @@ export async function POST(request: Request) {
       body: JSON.stringify({
         model: MODEL,
         prompt: enhancedPrompt,
+        response_format: "base64",
         width: 512,
-        height: 512,
-        response_format: "base64"
+        height: 512
       })
     })
 

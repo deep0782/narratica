@@ -10,11 +10,10 @@ import { Badge } from '@/components/ui/badge'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Film, Plus, Edit, Trash2, ArrowUp, ArrowDown, Wand2, Sparkles, Image, RefreshCw, AlertCircle } from 'lucide-react'
-import type { StoryFormData, Scene } from '@/app/create/page'
+import { useWizard, useCanProceed } from '@/contexts/wizard-context'
+import type { Scene } from '@/app/create/page'
 
 interface SceneManagementStepProps {
-  formData: StoryFormData
-  updateFormData: (updates: Partial<StoryFormData>) => void
   onNext: () => void
   onPrev: () => void
 }
@@ -24,7 +23,9 @@ const SCENE_MOODS = [
   'Magical', 'Suspenseful', 'Heartwarming', 'Dramatic', 'Playful'
 ]
 
-export function SceneManagementStep({ formData, updateFormData, onNext, onPrev }: SceneManagementStepProps) {
+export function SceneManagementStep({ onNext, onPrev }: SceneManagementStepProps) {
+  const { state: { formData }, updateForm } = useWizard()
+  const canProceed = useCanProceed()
   const [isAddingScene, setIsAddingScene] = useState(false)
   const [editingScene, setEditingScene] = useState<string | null>(null)
   const [newScene, setNewScene] = useState<Partial<Scene & { imageUrl?: string }>>({
@@ -90,7 +91,7 @@ export function SceneManagementStep({ formData, updateFormData, onNext, onPrev }
         const regularScenes = updatedScenes.filter(s => formData.scenes?.some(fs => fs.id === s.id))
         const generatedScenes = updatedScenes.filter(s => formData.generatedScenes?.some(gs => gs.id === s.id))
         
-        updateFormData({ 
+        updateForm({ 
           scenes: regularScenes.length > 0 ? regularScenes : undefined,
           generatedScenes: generatedScenes.length > 0 ? generatedScenes : undefined
         })
@@ -122,7 +123,7 @@ export function SceneManagementStep({ formData, updateFormData, onNext, onPrev }
         imageUrl: newScene.imageUrl
       }
 
-      updateFormData({
+      updateForm({
         scenes: [...(formData.scenes || []), scene]
       })
 
@@ -165,7 +166,7 @@ export function SceneManagementStep({ formData, updateFormData, onNext, onPrev }
           : scene
       ) || []
 
-      updateFormData({ scenes: updatedScenes })
+      updateForm({ scenes: updatedScenes })
       setNewScene({
         title: '',
         description: '',
@@ -187,7 +188,7 @@ export function SceneManagementStep({ formData, updateFormData, onNext, onPrev }
       ...scene,
       order: index + 1
     }))
-    updateFormData({ scenes: reorderedScenes })
+    updateForm({ scenes: reorderedScenes })
   }
 
   const handleMoveScene = (sceneId: string, direction: 'up' | 'down') => {
@@ -210,7 +211,7 @@ export function SceneManagementStep({ formData, updateFormData, onNext, onPrev }
       order: index + 1
     }))
     
-    updateFormData({ scenes: reorderedScenes })
+    updateForm({ scenes: reorderedScenes })
   }
 
   const handleGenerateScenes = () => {
@@ -254,14 +255,14 @@ export function SceneManagementStep({ formData, updateFormData, onNext, onPrev }
       }
     ]
 
-    updateFormData({
+    updateForm({
       generatedScenes: generatedScenes
     })
   }
 
   const allScenes = [...(formData.scenes || []), ...(formData.generatedScenes || [])]
     .sort((a, b) => a.order - b.order)
-  const canProceed = allScenes.length > 0
+  const hasProceed = allScenes.length > 0
 
   return (
     <div className="max-w-4xl mx-auto space-y-8">

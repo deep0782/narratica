@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Progress } from '@/components/ui/progress'
 import { Sparkles, BookOpen, Palette, Users, Film, Wand2 } from 'lucide-react'
+import { useWizard } from '@/contexts/wizard-context'
 
 const GENERATION_STEPS = [
   { id: 'analyzing', label: 'Analyzing your story', icon: BookOpen, duration: 2000 },
@@ -14,6 +15,7 @@ const GENERATION_STEPS = [
 ]
 
 export function GeneratingStep() {
+  const { state: { formData } } = useWizard()
   const [currentStepIndex, setCurrentStepIndex] = useState(0)
   const [progress, setProgress] = useState(0)
 

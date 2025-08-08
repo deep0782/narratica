@@ -10,16 +10,17 @@ import { Badge } from '@/components/ui/badge'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Users, Plus, Edit, Trash2, Sparkles, Wand2, Image, RefreshCw, AlertCircle } from 'lucide-react'
-import type { StoryFormData, Character } from '@/app/create/page'
+import { useWizard, useCanProceed } from '@/contexts/wizard-context'
+import type { Character } from '@/app/create/page'
 
 interface CharacterManagementStepProps {
-  formData: StoryFormData
-  updateFormData: (updates: Partial<StoryFormData>) => void
   onNext: () => void
   onPrev: () => void
 }
 
-export function CharacterManagementStep({ formData, updateFormData, onNext, onPrev }: CharacterManagementStepProps) {
+export function CharacterManagementStep({ onNext, onPrev }: CharacterManagementStepProps) {
+  const { state: { formData }, updateForm } = useWizard()
+  const canProceed = useCanProceed()
   const [isAddingCharacter, setIsAddingCharacter] = useState(false)
   const [editingCharacter, setEditingCharacter] = useState<string | null>(null)
   const [generatingImage, setGeneratingImage] = useState<string | null>(null)
@@ -37,6 +38,14 @@ export function CharacterManagementStep({ formData, updateFormData, onNext, onPr
       ? formData.characters?.find(c => c.id === characterId) 
       : newCharacter
 
+    const artStyle = formData.artStyle || 'cartoon'
+    const colorPalette = formData.colorPalette || 'friendly and colorful'
+    const illustrationStyle = formData.illustrationStyle || 'friendly and colorful'
+    const educationalTheme = formData.educational_theme || 'adventure and friendship'
+
+
+    
+
     if (!character?.name || !character?.description) {
       setImageError('Please provide character name and description first')
       return
@@ -48,7 +57,8 @@ export function CharacterManagementStep({ formData, updateFormData, onNext, onPr
 
     try {
       // Create detailed prompt for character image generation
-      const prompt = `Character portrait of ${character.name}, ${character.description}. ${character.appearance ? `Appearance: ${character.appearance}.` : ''} Children's book illustration style, friendly and colorful, cartoon style, safe for children, storybook character art, high quality, detailed`
+      const prompt = `Create a ${artStyle} style illustration of ${character.name}, ${character.description}. ${character.appearance ? `Appearance: ${character.appearance}.` : ''} ${illustrationStyle} style, ${colorPalette} colors, ${educationalTheme} theme, safe for children, storybook character art, high quality, detailed`
+
 
       const response = await fetch('/api/generate-image', {
         method: 'POST',
@@ -76,7 +86,7 @@ export function CharacterManagementStep({ formData, updateFormData, onNext, onPr
             ? { ...char, imageUrl }
             : char
         ) || []
-        updateFormData({ characters: updatedCharacters })
+        updateForm({ characters: updatedCharacters })
       } else {
         // Update new character being created
         setNewCharacter(prev => ({ ...prev, imageUrl }))
@@ -101,7 +111,7 @@ export function CharacterManagementStep({ formData, updateFormData, onNext, onPr
         imageUrl: newCharacter.imageUrl
       }
 
-      updateFormData({
+      updateForm({
         characters: [...(formData.characters || []), character]
       })
 
@@ -112,7 +122,7 @@ export function CharacterManagementStep({ formData, updateFormData, onNext, onPr
 
   const handleEditCharacter = (characterId: string) => {
     const character = formData.characters?.find(c => c.id === characterId) ||
-                     formData.extractedCharacters?.find(c => c.id === characterId)
+                     (formData as any).extractedCharacters?.find((c: Character) => c.id === characterId)
     if (character) {
       setNewCharacter({
         name: character.name,
@@ -146,10 +156,10 @@ export function CharacterManagementStep({ formData, updateFormData, onNext, onPr
               }
             : char
         ) || []
-        updateFormData({ characters: updatedCharacters })
+        updateForm({ characters: updatedCharacters })
       } else {
         // Handle extracted characters
-        const updatedExtractedCharacters = formData.extractedCharacters?.map(char =>
+        const updatedExtractedCharacters = (formData as any).extractedCharacters?.map((char: Character) =>
           char.id === editingCharacter
             ? {
                 ...char,
@@ -162,7 +172,12 @@ export function CharacterManagementStep({ formData, updateFormData, onNext, onPr
               }
             : char
         ) || []
-        updateFormData({ extractedCharacters: updatedExtractedCharacters })
+        updateForm({ 
+          formData: {
+            ...formData,
+            extractedCharacters: updatedExtractedCharacters 
+          }
+        } as any) // Type assertion needed until StoryFormData type is updated
       }
 
       // Reset form state
@@ -175,7 +190,7 @@ export function CharacterManagementStep({ formData, updateFormData, onNext, onPr
 
   const handleDeleteCharacter = (characterId: string) => {
     const updatedCharacters = formData.characters?.filter(char => char.id !== characterId) || []
-    updateFormData({ characters: updatedCharacters })
+    updateForm({ characters: updatedCharacters })
   }
 
   const handleExtractCharacters = () => {
@@ -183,7 +198,7 @@ export function CharacterManagementStep({ formData, updateFormData, onNext, onPr
     const extractedCharacters: Character[] = [
       {
         id: `extracted-${Date.now()}-1`,
-        name: formData.child_name || 'Hero',
+        name:  'Hero',
         description: 'The brave main character of our story',
         appearance: 'Curious and adventurous',
         role: 'main',
@@ -198,14 +213,16 @@ export function CharacterManagementStep({ formData, updateFormData, onNext, onPr
         isChildCharacter: false
       }
     ]
-
-    updateFormData({
-      extractedCharacters: extractedCharacters
-    })
+     updateForm({ 
+          formData: {
+            ...formData,
+            extractedCharacters: extractedCharacters 
+          }
+        } as any) // Type assertion needed until StoryFormData type is updated
   }
 
-  const allCharacters = [...(formData.characters || []), ...(formData.extractedCharacters || [])]
-  const canProceed = allCharacters.length > 0
+  const allCharacters = [...(formData.characters || []), ...((formData as any).extractedCharacters || [])]
+const hasCharacters = allCharacters.length > 0
 
   return (
     <div className="max-w-4xl mx-auto space-y-8">

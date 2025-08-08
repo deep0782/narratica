@@ -1,15 +1,19 @@
 'use client'
 
+import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Palette, Sparkles } from 'lucide-react'
+import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Loader2, Palette, Sparkles, AlertCircle } from 'lucide-react'
 import Image from 'next/image'
-import type { StoryFormData } from '@/app/create/page'
+
+import { useChatContext } from '@/contexts/chat-context'
+import { useWizard, useCanProceed } from '@/contexts/wizard-context'
+import { ChatService, createSystemMessage, createUserMessage } from '@/lib/chat-service'
+import { parseStoryToJSON } from '@/lib/utils'
 
 interface ArtStyleSelectionStepProps {
-  formData: StoryFormData
-  updateFormData: (updates: Partial<StoryFormData>) => void
   onNext: () => void
   onPrev: () => void
 }
@@ -65,17 +69,217 @@ const ART_STYLES = [
   }
 ]
 
-export function ArtStyleSelectionStep({ formData, updateFormData, onNext, onPrev }: ArtStyleSelectionStepProps) {
+export function ArtStyleSelectionStep({ onNext, onPrev }: ArtStyleSelectionStepProps) {
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const { state: { formData }, updateForm } = useWizard();
+  const { setSession, setCurrentSession } = useChatContext();
+  const canProceed = useCanProceed();
+
   const handleStyleSelect = (style: typeof ART_STYLES[0]) => {
-    updateFormData({
+    updateForm({
       artStyle: style.name,
       colorPalette: style.colorPalette,
       illustrationStyle: style.mood
     })
   }
 
+  const generateStoryOutline = async () => {
+    setIsLoading(true);
+    setError(null);
+
+    const messages = [
+      createSystemMessage(`
+        ## **Creative Writing Exercise Prompt**
+
+You are an expert in writing engaging and imaginative **children’s storybooks**. Your task is to create a full story suitable for a picture book and provide a corresponding **text-to-image prompt** for each page that visually illustrates the narrative.
+
+The story should be **short, engaging, and appropriate for young readers**. Each page will include a brief text and a vivid image prompt that captures the essence of the scene.
+## **Steps to Create the Story**
+### 1. **Gathering Story Details**
+Before starting the story, you need to gather specific details to ensure the narrative and illustrations are cohesive and engaging. Use the following questions to collect all necessary information:
+
+#### 📖 **Story Theme**
+* *“What is the main theme or moral of the story?”*
+  *(e.g., friendship, bravery, kindness, adventure, etc.)*
+
+#### 📖 **Story Characters**
+Identify the main characters and their roles in the story and generate a full visual description for each character. 
+
+### **Character Image Prompts**
+Add more characteristic appearance to the character description to make it more vivid and engaging.The description should be able to be used as a text-to-image prompt for generating illustrations. Use frontview pose and full body description for the character on a white background.
+
+---
+### 2. **Creating the Story**
+Once you have gathered all the necessary details, you can start crafting the story. Each page should include:
+* A short, engaging text appropriate for young readers.
+* A vivid, descriptive image prompt tied to the scene along with the character and appearance to make the image consistence throughout the story.
+* The narrative should be structured to allow for illustrations that enhance the storytelling experience.
+* The story should be divided into manageable sections or pages, each with its own text and image prompt.
+* The text should be simple and clear, using language that is accessible to young readers.
+* Each page should have a clear focus, whether it’s introducing a character, describing a setting, or advancing the plot.
+* The story should have a beginning, middle, and end, with a clear narrative arc.
+* The text should be engaging and imaginative, sparking the reader's imagination and encouraging them to visualize the scenes.
+* The story should be suitable for a picture book format, with each page designed to be visually appealing and easy to read.
+* Based on the age group, the text should be age-appropriate, using simple vocabulary and short sentences for younger readers, while still being engaging for older children.
+* The text should be minimum 50 words and maximum 100 words per page to ensure it is concise and engaging.
+<!-- Style
+Fun, colorful cartoon-style illustrations
+
+Color Palette
+Bright and vibrant
+
+Mood
+Playful and energetic -->
+---
+### 3. **Visual Elements**
+To ensure the illustrations are visually appealing and consistent, gather the following details:
+#### 🎨 **Image Style**
+* *“What style of illustration is preferred for the images?”*
+  *(e.g., 2D cartoon, watercolor, semi-realistic, etc.)*
+#### 🖼️ **Image Prompt**
+* *“What is the specific scene or moment to illustrate?”*
+  *(e.g., a dragon flying over a castle, a child planting a tree, etc.)*
+#### 🎨 **Animation Style**
+* *“What animation style should be used for the illustrations?”*
+  *(e.g., 2D semi-realistic cartoon, 3D animated, hand-drawn, etc.)*
+#### 📐 **Image Aspect Ratio**
+* *“What aspect ratio is required for the illustrations?”*
+  *(e.g., 3:2, 16:9, 1:1, portrait, etc.)*
+#### 🎨 **Color Palette**
+* *“What color palette is preferred for the illustrations?”*
+  * Bright and vibrant colors, with a focus on pastel shades for a whimsical feel.
+  * Soft, muted tones for a more serene and calming effect.
+  * Bold and contrasting colors for a more dynamic and energetic look.
+  * Natural and earthy tones for a more realistic and grounded feel.
+  * Monochromatic or limited color palette for a more minimalist and modern aesthetic.
+### 4. ** Number of Pages**
+* *“How many pages should the story have?”*
+  *(e.g., 8 pages, 12 pages, etc.)*
+---
+### 5. **Finalizing the Story**
+Once you have gathered all the necessary details, compile them into a structured format. Ensure that the story flows logically and that each page has a clear focus. Review the text and image prompts to ensure they are engaging, age-appropriate, and visually appealing.
+---
+## ✅ **Once All Details Are Collected, Format the Output Like This:**
+## **Story Title**: [Insert Story Title Here]
+## **Story Theme**: [Insert Story Theme Here]
+## **Story Characters**:
+### Character 1
+**name**: [Character Name]
+**description**: [Full visual description of the character, including appearance, clothing, and any unique features.]
+**image_prompt**: [Insert image prompt for the character here, describing the scene and characters in detail.]
+ 
+
+## **Story Text and Image Prompts**:
+### Page 1
+**Text**: [Insert text for page 1 here, ensuring it is engaging and appropriate for young readers.]
+**Image Prompt**: [Insert image prompt for page 1 here, describing the scene and characters in detail.]
+
+### **Example Output**
+
+## **Story Text and Image Prompts**:
+## **Story Title**: The Brave Little Squirrel
+## **Story Theme**: Bravery and Friendship
+## **Story Characters**:
+### Character 1
+**name**: Squeaky
+**description**: A small, fluffy gray squirrel with big, bright eyes and a bushy tail. He wears a tiny red bandana around his neck and has a playful, adventurous spirit.
+**image_prompt**: A small, fluffy gray squirrel with big, bright eyes and a bushy tail. He wears a tiny red bandana around his neck and is standing on a tree branch, looking out over the forest with excitement.
+
+
+## **Story Text and Image Prompts**:
+### Page 1
+**Text**: In a lush, green forest, lived a brave little squirrel named Squeaky. He loved to explore and make new friends. One sunny morning, Squeaky decided to venture deeper into the woods than ever before.
+**Image Prompt**: A vibrant forest scene with tall trees, colorful flowers, and a small, fluffy gray squirrel wearing a red bandana. The sun shines through the leaves, creating a warm and inviting atmosphere.
+### Page 2
+**Text**: As Squeaky ventured deeper into the forest, he met a wise old owl named Benny. Benny perched on a branch, watching Squeaky with his large, round glasses.
+**Image Prompt**: A wise old owl with soft, brown feathers and large, round glasses perched on a tree branch. The background shows a deeper part of the forest with dappled sunlight filtering through the leaves.
+### Page 3
+**Text**: "Hello, Squeaky! Where are you going?" Benny hooted. Squeaky replied, "I want to find new adventures and make new friends!" Benny smiled and said, "Be brave, little one. The forest is full of wonders."
+**Image Prompt**: Squeaky talking to Benny the owl, with Squeaky looking excited and determined. The background shows a path leading deeper into the forest, with colorful flowers and butterflies fluttering around.
+### Page 4
+**Text**: As Squeaky continued on his journey, he met a gentle deer named Luna. Luna had a light brown coat with white spots and big, friendly eyes. "Hello there!" she said. "What brings you to this part of the forest?"
+**Image Prompt**: A gentle deer with a light brown coat and white spots standing in a sunlit clearing. Squeaky looks up at Luna with curiosity and excitement.
+
+## ⚠️ **Behavior Guidelines**
+
+1. **Be Creative**: Use your imagination to create a unique and engaging story that captivates young readers.
+2. **Be Descriptive**: Provide vivid descriptions in both the text and image prompts to enhance the storytelling experience.
+3. **Be Consistent**: Ensure that the characters and settings are visually consistent throughout the story.
+4. **Be Age-Appropriate**: Tailor the language and themes to be suitable for young readers, ensuring the story is easy to understand and engaging.
+5. **Be Positive**: Focus on positive themes and messages that encourage kindness, bravery, and friendship.
+6. **Be Engaging**: Use language and imagery to keep the story compelling and enticing to readers.
+7. **Be Respectful**: Avoid using language or imagery that could be interpreted as offensive or disrespectful.
+8. **Be Creative**: Use your imagination to create a unique and engaging story that captivates young readers.
+9. **Be Descriptive**: Provide vivid descriptions in both the text and image prompts to enhance the storytelling experience.
+10. **Be Consistent**: Ensure that the characters and settings are visually consistent throughout the story.
+11. **Be Age-Appropriate**: Tailor the language and themes to be suitable for young readers, ensuring the story is easy to understand and engaging.
+12. **Be Positive**: Focus on positive themes and messages that encourage kindness, bravery, and friendship.
+`),
+      createUserMessage(`${formData.storyDescription}
+        - Art Style: ${formData.artStyle}
+        - Color Palette: ${formData.colorPalette}
+        - Mood: ${formData.illustrationStyle}
+        - Story Theme: ${formData.educational_theme || 'adventure and friendship'}
+        The story should be complete within 3 pages. Add more narrative to the story minimum 200 words. Each page should have a text and image prompt.`)
+    ];
+
+    try {
+      const chatService = ChatService.getInstance();
+      const result = await chatService.createChatCompletion(messages, {
+        sessionPrefix: 'story_outline'
+      });
+
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to generate story outline');
+      }
+
+      console.log(parseStoryToJSON(result.message || ''))
+
+      // Store the chat session in context
+      const sessionId = result.sessionId;
+      const session = chatService.getChatSession(sessionId);
+      
+      if (session) {
+        setSession(sessionId, session.messages);
+        setCurrentSession(sessionId);
+
+        
+        // Store the session ID in form data for reference
+        updateForm({
+          sessionId: sessionId,
+          characters: parseStoryToJSON(result.message || '').characters.map(char => ({
+            id: crypto.randomUUID(),
+            name: (char as any).name,
+            description: (char as any).description,
+            role: 'main', // Default role since it's not specified in the parsed data
+            appearance: (char as any).prompt, // Using the prompt as appearance since it contains visual description
+
+          })),
+          autoGeneratedTitle: parseStoryToJSON(result.message || '').title,
+
+
+        });
+      }
+
+      return true;
+    } catch (error) {
+      setError(error instanceof Error ? error.message : 'Failed to generate story outline');
+      return false;
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  const handleNext = async () => {
+    const success = await generateStoryOutline();
+    if (success) {
+      onNext();
+    }
+  }
+
   const selectedStyle = ART_STYLES.find(style => style.name === formData.artStyle)
-  const canProceed = formData.artStyle !== ''
+  const hasProceed = formData.artStyle !== ''
 
   return (
     <div className="max-w-6xl mx-auto space-y-8">
@@ -166,17 +370,32 @@ export function ArtStyleSelectionStep({ formData, updateFormData, onNext, onPrev
         </Card>
       )}
 
+      {/* Error Alert */}
+      {error && (
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
+
       {/* Navigation */}
       <div className="flex justify-between">
         <Button variant="outline" onClick={onPrev}>
           Back to Story Input
         </Button>
         <Button 
-          onClick={onNext}
-          disabled={!canProceed}
+          onClick={handleNext}
+          disabled={!canProceed || isLoading}
           className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
         >
-          Continue to Characters
+          {isLoading ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Generating...
+            </>
+          ) : (
+            'Continue to Characters'
+          )}
         </Button>
       </div>
     </div>

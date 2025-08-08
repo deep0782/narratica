@@ -8,24 +8,13 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
 import { Plus, User, Star, Heart } from 'lucide-react'
+import { useWizard, useCanProceed } from '@/contexts/wizard-context'
 import type { Child } from '@/lib/supabase'
 
 interface ChildSelectionStepProps {
   children: Child[]
-  selectedChild: Child | null
-  newChildData?: {
-    name: string
-    age_group: 'toddlers' | 'elementary' | 'preteens'
-    favorite_activities: string[]
-    character_traits: string[]
-  }
-  onChildSelect: (child: Child) => void
-  onNewChildData: (data: {
-    name: string
-    age_group: 'toddlers' | 'elementary' | 'preteens'
-    favorite_activities: string[]
-    character_traits: string[]
-  }) => void
+  onNext: () => void
+  onPrev: () => void
 }
 
 const AGE_GROUPS = [

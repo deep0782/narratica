@@ -2,15 +2,12 @@
 
 import { Progress } from '@/components/ui/progress'
 import { BookOpen, Sparkles } from 'lucide-react'
+import { useWizard } from '@/contexts/wizard-context'
 
-interface StoryWizardHeaderProps {
-  currentStep: number
-  totalSteps: number
-  title: string
-}
+export function StoryWizardHeader({step, totalSteps, title}: {step: number, totalSteps: number, title: string}) {
 
-export function StoryWizardHeader({ currentStep, totalSteps, title }: StoryWizardHeaderProps) {
-  const progress = ((currentStep + 1) / totalSteps) * 100
+  const progress = ((step + 1) / totalSteps) * 100
+  const currentStepTitle = title || 'Story Creation'
 
   return (
     <div className="bg-white/90 backdrop-blur-sm border-b border-purple-200 sticky top-0 z-10">
@@ -26,13 +23,13 @@ export function StoryWizardHeader({ currentStep, totalSteps, title }: StoryWizar
                   Story Creation Wizard
                   <Sparkles className="h-5 w-5 text-purple-600" />
                 </h1>
-                <p className="text-gray-600">{title}</p>
+                <p className="text-gray-600">{currentStepTitle}</p>
               </div>
             </div>
             
             <div className="text-right">
               <div className="text-sm text-gray-600 mb-1">
-                Step {currentStep + 1} of {totalSteps}
+                Step {step + 1} of {totalSteps}
               </div>
               <div className="text-xs text-gray-500">
                 {Math.round(progress)}% Complete

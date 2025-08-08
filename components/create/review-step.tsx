@@ -5,15 +5,16 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
 import { BookOpen, Palette, Users, Film, Sparkles } from 'lucide-react'
-import type { StoryFormData } from '@/app/create/page'
+import { useWizard, useCanProceed } from '@/contexts/wizard-context'
 
 interface ReviewStepProps {
-  formData: StoryFormData
   onGenerate: () => void
   onPrev: () => void
 }
 
-export function ReviewStep({ formData, onGenerate, onPrev }: ReviewStepProps) {
+export function ReviewStep({ onGenerate, onPrev }: ReviewStepProps) {
+  const { state: { formData } } = useWizard()
+  const canProceed = useCanProceed()
   return (
     <div className="max-w-4xl mx-auto space-y-6">
       <div className="text-center space-y-2">

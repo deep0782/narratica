@@ -9,11 +9,11 @@ import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
 import { PenTool, Lightbulb, MapPin, Star, Plus, X } from 'lucide-react'
-import type { StoryFormData } from '@/app/create/page'
+import { useWizard, useCanProceed } from '@/contexts/wizard-context'
 
 interface StoryDetailsStepProps {
-  formData: StoryFormData
-  onUpdate: (updates: Partial<StoryFormData>) => void
+  onNext: () => void
+  onPrev: () => void
 }
 
 const SETTING_OPTIONS = [
@@ -28,12 +28,14 @@ const ELEMENT_SUGGESTIONS = [
   'Super Powers', 'Mystery to Solve', 'Lost Pet', 'New Friend'
 ]
 
-export function StoryDetailsStep({ formData, onUpdate }: StoryDetailsStepProps) {
+export function StoryDetailsStep({ onNext, onPrev }: StoryDetailsStepProps) {
+  const { state: { formData }, updateForm } = useWizard()
+  const canProceed = useCanProceed()
   const [newElement, setNewElement] = useState('')
 
   const addSpecificElement = (element: string) => {
     if (element && !formData.specific_elements.includes(element)) {
-      onUpdate({
+      updateForm({
         specific_elements: [...formData.specific_elements, element]
       })
     }
@@ -41,7 +43,7 @@ export function StoryDetailsStep({ formData, onUpdate }: StoryDetailsStepProps) 
   }
 
   const removeSpecificElement = (element: string) => {
-    onUpdate({
+    updateForm({
       specific_elements: formData.specific_elements.filter(e => e !== element)
     })
   }
@@ -76,7 +78,7 @@ export function StoryDetailsStep({ formData, onUpdate }: StoryDetailsStepProps) 
             <Textarea
               id="story-description"
               value={formData.story_description}
-              onChange={(e) => onUpdate({ story_description: e.target.value })}
+              onChange={(e) => updateForm({ story_description: e.target.value })}
               placeholder="Example: I want a story where my child goes on a magical adventure to help a lost dragon find its way home, learning about friendship and helping others along the way..."
               className="min-h-[120px]"
             />
@@ -101,7 +103,7 @@ export function StoryDetailsStep({ formData, onUpdate }: StoryDetailsStepProps) 
             <Select 
               value={formData.character_role} 
               onValueChange={(value: 'protagonist' | 'supporting' | 'narrator') => 
-                onUpdate({ character_role: value })
+                updateForm({ character_role: value })
               }
             >
               <SelectTrigger className="mt-2">
@@ -145,7 +147,7 @@ export function StoryDetailsStep({ formData, onUpdate }: StoryDetailsStepProps) 
             <Label>Where would you like the story to take place?</Label>
             <Select 
               value={formData.setting_preference || 'ai-choice'} 
-              onValueChange={(value) => onUpdate({ 
+              onValueChange={(value) => updateForm({ 
                 setting_preference: value === 'ai-choice' ? undefined : value 
               })}
             >
@@ -263,7 +265,7 @@ export function StoryDetailsStep({ formData, onUpdate }: StoryDetailsStepProps) 
             <Input
               id="moral-lesson"
               value={formData.moral_lesson || ''}
-              onChange={(e) => onUpdate({ moral_lesson: e.target.value || undefined })}
+              onChange={(e) => updateForm({ moral_lesson: e.target.value || undefined })}
               placeholder="Example: The importance of helping others, being brave when scared, etc."
               className="mt-2"
             />
