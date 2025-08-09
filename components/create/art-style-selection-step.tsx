@@ -11,7 +11,7 @@ import Image from 'next/image'
 import { useChatContext } from '@/contexts/chat-context'
 import { useWizard, useCanProceed } from '@/contexts/wizard-context'
 import { ChatService, createSystemMessage, createUserMessage } from '@/lib/chat-service'
-import { parseStoryToJSON } from '@/lib/utils'
+import { markdownToJson } from '@/lib/utils'
 
 interface ArtStyleSelectionStepProps {
   onNext: () => void
@@ -90,9 +90,9 @@ export function ArtStyleSelectionStep({ onNext, onPrev }: ArtStyleSelectionStepP
 
     const messages = [
       createSystemMessage(`
-        ## **Creative Writing Exercise Prompt**
+## **Creative Writing Exercise Prompt**
 
-You are an expert in writing engaging and imaginative **children’s storybooks**. Your task is to create a full story suitable for a picture book and provide a corresponding **text-to-image prompt** for each page that visually illustrates the narrative.
+You are an expert in writing engaging and imaginative **children's storybooks**. Your task is to create a full story suitable for a picture book and provide a corresponding **text-to-image prompt** for each page that visually illustrates the narrative.
 
 The story should be **short, engaging, and appropriate for young readers**. Each page will include a brief text and a vivid image prompt that captures the essence of the scene.
 ## **Steps to Create the Story**
@@ -117,7 +117,7 @@ Once you have gathered all the necessary details, you can start crafting the sto
 * The narrative should be structured to allow for illustrations that enhance the storytelling experience.
 * The story should be divided into manageable sections or pages, each with its own text and image prompt.
 * The text should be simple and clear, using language that is accessible to young readers.
-* Each page should have a clear focus, whether it’s introducing a character, describing a setting, or advancing the plot.
+* Each page should have a clear focus, whether it's introducing a character, describing a setting, or advancing the plot.
 * The story should have a beginning, middle, and end, with a clear narrative arc.
 * The text should be engaging and imaginative, sparking the reader's imagination and encouraging them to visualize the scenes.
 * The story should be suitable for a picture book format, with each page designed to be visually appealing and easy to read.
@@ -169,11 +169,16 @@ Once you have gathered all the necessary details, compile them into a structured
 **description**: [Full visual description of the character, including appearance, clothing, and any unique features.]
 **image_prompt**: [Insert image prompt for the character here, describing the scene and characters in detail.]
  
-
 ## **Story Text and Image Prompts**:
 ### Page 1
-**Text**: [Insert text for page 1 here, ensuring it is engaging and appropriate for young readers.]
+**Title**:[Insert the title of the scene as per the story]
+**Description**: [Insert text for page 1 here, ensuring it is engaging and appropriate for young readers.]
 **Image Prompt**: [Insert image prompt for page 1 here, describing the scene and characters in detail.]
+**Characters**: [Insert characters present in the scene here.]
+**Narration**: [Insert narration for page 1 here, ensuring it is engaging and appropriate for young readers.]
+**Setting**: [Insert setting for page 1 here, describing the environment and atmosphere.]
+**Mood*: [Insert mood for page 1 here, describing the mood of the scene]
+**Key Events**: [Insert key for page 1 here, describing the key events happening in the scene]
 
 ### **Example Output**
 
@@ -186,20 +191,16 @@ Once you have gathered all the necessary details, compile them into a structured
 **description**: A small, fluffy gray squirrel with big, bright eyes and a bushy tail. He wears a tiny red bandana around his neck and has a playful, adventurous spirit.
 **image_prompt**: A small, fluffy gray squirrel with big, bright eyes and a bushy tail. He wears a tiny red bandana around his neck and is standing on a tree branch, looking out over the forest with excitement.
 
-
 ## **Story Text and Image Prompts**:
 ### Page 1
-**Text**: In a lush, green forest, lived a brave little squirrel named Squeaky. He loved to explore and make new friends. One sunny morning, Squeaky decided to venture deeper into the woods than ever before.
+**Title**: The Brave Little Squirrel
+**Description**: In a lush, green forest, lived a brave little squirrel named Squeaky. He loved to explore and make new friends. One sunny morning, Squeaky decided to venture deeper into the woods than ever before.
 **Image Prompt**: A vibrant forest scene with tall trees, colorful flowers, and a small, fluffy gray squirrel wearing a red bandana. The sun shines through the leaves, creating a warm and inviting atmosphere.
-### Page 2
-**Text**: As Squeaky ventured deeper into the forest, he met a wise old owl named Benny. Benny perched on a branch, watching Squeaky with his large, round glasses.
-**Image Prompt**: A wise old owl with soft, brown feathers and large, round glasses perched on a tree branch. The background shows a deeper part of the forest with dappled sunlight filtering through the leaves.
-### Page 3
-**Text**: "Hello, Squeaky! Where are you going?" Benny hooted. Squeaky replied, "I want to find new adventures and make new friends!" Benny smiled and said, "Be brave, little one. The forest is full of wonders."
-**Image Prompt**: Squeaky talking to Benny the owl, with Squeaky looking excited and determined. The background shows a path leading deeper into the forest, with colorful flowers and butterflies fluttering around.
-### Page 4
-**Text**: As Squeaky continued on his journey, he met a gentle deer named Luna. Luna had a light brown coat with white spots and big, friendly eyes. "Hello there!" she said. "What brings you to this part of the forest?"
-**Image Prompt**: A gentle deer with a light brown coat and white spots standing in a sunlit clearing. Squeaky looks up at Luna with curiosity and excitement.
+**Characters**: Squeaky
+**Narration**: In a lush, green forest, lived a brave little squirrel named Squeaky. He loved to explore and make new friends. One sunny morning, Squeaky decided to venture deeper into the woods than ever before.
+**Setting**: Home/Starting location
+**Mood**: Peaceful
+**Key Events**: Introduction, Call to adventure
 
 ## ⚠️ **Behavior Guidelines**
 
@@ -214,7 +215,6 @@ Once you have gathered all the necessary details, compile them into a structured
 9. **Be Descriptive**: Provide vivid descriptions in both the text and image prompts to enhance the storytelling experience.
 10. **Be Consistent**: Ensure that the characters and settings are visually consistent throughout the story.
 11. **Be Age-Appropriate**: Tailor the language and themes to be suitable for young readers, ensuring the story is easy to understand and engaging.
-12. **Be Positive**: Focus on positive themes and messages that encourage kindness, bravery, and friendship.
 `),
       createUserMessage(`${formData.storyDescription}
         - Art Style: ${formData.artStyle}
@@ -234,7 +234,7 @@ Once you have gathered all the necessary details, compile them into a structured
         throw new Error(result.error || 'Failed to generate story outline');
       }
 
-      console.log(parseStoryToJSON(result.message || ''))
+      console.log(markdownToJson(result.message || ''))
 
       // Store the chat session in context
       const sessionId = result.sessionId;
@@ -248,7 +248,7 @@ Once you have gathered all the necessary details, compile them into a structured
         // Store the session ID in form data for reference
         updateForm({
           sessionId: sessionId,
-          characters: parseStoryToJSON(result.message || '').characters.map(char => ({
+          characters: markdownToJson(result.message || '').characters.map(char => ({
             id: crypto.randomUUID(),
             name: (char as any).name,
             description: (char as any).description,
@@ -256,7 +256,20 @@ Once you have gathered all the necessary details, compile them into a structured
             appearance: (char as any).prompt, // Using the prompt as appearance since it contains visual description
 
           })),
-          autoGeneratedTitle: parseStoryToJSON(result.message || '').title,
+          autoGeneratedTitle: markdownToJson(result.message || '').title,
+          scenes: markdownToJson(result.message || '').pages.map((scene, index) => ({
+            id: crypto.randomUUID(),
+            title: scene.title,
+            description: scene.description,
+            setting: scene.setting,
+            mood: scene.mood,
+            keyEvents: scene.key_events.split(','),
+            characters: scene.characters,
+            narration: scene.narration,
+            imagePrompt: scene.image_prompt,
+            order: index+1,
+          })),
+
 
 
         });

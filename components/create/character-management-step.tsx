@@ -9,7 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Users, Plus, Edit, Trash2, Sparkles, Wand2, ImageIcon, RefreshCw, AlertCircle } from "lucide-react"
+import { Users, Plus, Edit, Trash2, Sparkles, Wand2, Image, RefreshCw, AlertCircle } from "lucide-react"
 import { useWizard, useCanProceed } from "@/contexts/wizard-context"
 import type { Character } from "@/app/create/page"
 
@@ -36,24 +36,22 @@ export function CharacterManagementStep({ onNext, onPrev }: CharacterManagementS
     imageUrl: "",
   })
 
+  // Auto-generate images for characters without images on component load
   useEffect(() => {
-    // Auto-generate images for characters that don't have them
-    const generateMissingImages = async () => {
-      const charactersNeedingImages = allCharacters.filter(
-        (char) => !(char as any).imageUrl && char.name && char.description,
-      )
+    const allCharacters = [...(formData.characters || []), ...((formData as any).extractedCharacters || [])]
+    const charactersWithoutImages = allCharacters.filter(char => {
+      const characterWithImage = char as Character & { imageUrl?: string }
+      return !characterWithImage.imageUrl && char.name && char.description
+    })
 
-      for (const character of charactersNeedingImages) {
-        await generateCharacterImage(character.id)
-        // Add a small delay between generations to avoid overwhelming the API
-        await new Promise((resolve) => setTimeout(resolve, 1000))
-      }
-    }
-
-    if (allCharacters.length > 0) {
-      generateMissingImages()
-    }
-  }, []) // Empty dependency array to run only on mount
+    // Generate images for characters that don't have them yet
+    charactersWithoutImages.forEach(character => {
+      // Add a small delay between requests to avoid overwhelming the API
+      setTimeout(() => {
+        generateCharacterImage(character.id)
+      }, 10000) // Random delay up to 10 seconds
+    })
+  }, [formData.characters, (formData as any).extractedCharacters])
 
   const generateCharacterImage = async (characterId?: string) => {
     const character = characterId ? formData.characters?.find((c) => c.id === characterId) : newCharacter
@@ -316,7 +314,7 @@ export function CharacterManagementStep({ onNext, onPrev }: CharacterManagementS
                         {isGenerating ? (
                           <RefreshCw className="h-4 w-4 animate-spin" />
                         ) : (
-                          <ImageIcon className="h-4 w-4" />
+                          <Image className="h-4 w-4" />
                         )}
                       </Button>
                       <Button variant="ghost" size="sm" onClick={() => handleEditCharacter(character.id)}>
@@ -356,7 +354,7 @@ export function CharacterManagementStep({ onNext, onPrev }: CharacterManagementS
                           {isGenerating ? (
                             <RefreshCw className="h-6 w-6 text-gray-400 animate-spin" />
                           ) : (
-                            <ImageIcon className="h-6 w-6 text-gray-400" />
+                            <Image className="h-6 w-6 text-gray-400" />
                           )}
                         </div>
                       )}
@@ -463,7 +461,7 @@ export function CharacterManagementStep({ onNext, onPrev }: CharacterManagementS
                     </div>
                   ) : (
                     <div className="text-center">
-                      <ImageIcon className="h-8 w-8 text-gray-400 mx-auto mb-2" />
+                      <Image className="h-8 w-8 text-gray-400 mx-auto mb-2" />
                       <p className="text-sm text-gray-500">No image yet</p>
                     </div>
                   )}
